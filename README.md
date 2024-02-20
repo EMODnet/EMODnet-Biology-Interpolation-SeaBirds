@@ -56,11 +56,13 @@ Would you like to use a personal library instead? (yes/No/cancel)
 
 #### Tested R versions
 
-* ```R                         
+* _Eye Holes_
+```R                         
 version.string R version 4.3.2 (2023-10-31)
 nickname       Eye Holes
 ```
-* ```R
+* _Bird Hippie_
+```R
 version.string R version 4.1.2 (2021-11-01)
 nickname       Bird Hippie    
 ```
