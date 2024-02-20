@@ -1,3 +1,6 @@
+data/
+figures/
+
 .RData
 .Rhistory
 src/julia/.ipynb_checkpoints/
