@@ -61,96 +61,100 @@ deltalon <- 1.
 deltalat <- 1.
 domain <- c(left = min(lon) - deltalon, bottom = min(lat) - deltalat, right = max(lon) + deltalon, top = max(lat) + deltalat)
 
+log_info("Creating figure")
 ggplot() +
-  geom_point(aes(x = lon, y = lat), size = 1, colour="red") +
+  geom_point(aes(x = lon, y = lat), size = 1, colour="orange") +
   xlab("Longitude (°N)") +
   ylab("Latitude (°E)") +
-  coord_sf(
-    xlim = c(-20, 15),
-    ylim = c(40, 64.)) + 
+  coord_cartesian(xlim =c(domain["left"], domain["right"]), ylim = c(domain["bottom"], domain["top"])) + 
   borders("world",fill="black",colour="black") + 
   ggtitle("Location of the observations") 
 
-ggsave(file.path(figdir, "observations.png"))
-
+ggsave(file.path(figdir, "turtle_observations.png"))
 
 #   A simple heatmap without land mask
 #   ====================================
 
-julia_assign("NX", 300)
-julia_assign("NY", 250)
+# Set domain of interest
+lonmin <- -14.
+latmin <- 47.
+LX <- 18.
+LY <- 15.
+lonmax <- lonmin + LX
+latmax <- latmin + LY
 
-dx=LX/(NX)
-dy=LY/(NY)
+NX <- 300
+NY <- 250
+
+dx <- LX/NX
+dy <- LY/NY
 
 # Bounding box
 # Defined in domain variable
 
-xo=lon
-yo=lat
+xo <- lon
+yo <- lat
 
 # Eliminate points out of the box
-sel=(xo.>xleft) .& (xo.<xright) .& (yo.>ybot) .& (yo.<ytop)
-
-xo=xo[sel]
-yo=yo[sel]
-inflation=ones(size(xo))
+sel <- (xo>lonmin) & (xo < lonmax) & (yo > latmin) & (yo < latmax)
+xo <- xo[sel]
+yo <- yo[sel]
+inflation <- rep(1., length(xo))
 
 #   Heatmap
 #   –––––––––
 
+seq(0, 1, length.out=npoints)
 
-xg = xleft+dx/2:dx:xleft+LX
-yg = ybot+dy/2:dy:ybot+LY
-# for pyplot
-xp=xleft:dx:xleft+LX
-yp = ybot:dy:ybot+LY
-maskp,(pmp,pnp),(xip,yip) = DIVAnd.DIVAnd_rectdom(xp,yp)
+xg <- seq(lonmin + dx/2, lonmax, dx)
+yg <- seq(latmin + dy/2, latmax, dy)
+julia_assign("xg", xg)
+julia_assign("yg", yg)
 
-mask,(pm,pn),(xi,yi) = DIVAnd.DIVAnd_rectdom(xg,yg)
+julia_command("mask, (pm,pn), (xi,yi) = DIVAnd.DIVAnd_rectdom(xg, yg);") 
 
 
-# adding a mask
-#mask[(xi.+0.25)./0.95 .+ (yi.-2.4)./1.1 .<1 ].=false
-#mask[2*xi.+yi .<3.4 ].=false
-
-@show size(xi)
 # From here generic approach 
-@time dens1,LHM,LCV,LSCV = DIVAnd.DIVAnd_heatmap(mask,(pm,pn),(xi,yi),(xo,yo),inflation,0;Ladaptiveiterations=1)
+julia_assign("xo", xo)
+julia_assign("yo", yo)
+julia_assign("inflation", inflation)
 
-figure()
-pcolor(xip,yip,dens1),colorbar()
-scatter(xo,yo,s=1,c="white")
-xlabel("Longitude")
-ylabel("Latitude")
-title("Density and observations")
-@show LCV,LSCV,mean(LHM[1]),mean(LHM[2])
+julia_command("@time dens1,LHM,LCV,LSCV = DIVAnd.DIVAnd_heatmap(mask,(pm,pn),(xi,yi),(xo,yo),inflation,0;Ladaptiveiterations=1);")
 
-figure()
-pcolor(xip,yip,log.(dens1)),colorbar()
-xlabel("Longitude")
-ylabel("Latitude")
-title("Density (log)")
+# From Julia variable to R variable
+dens1 = julia_eval("dens1")
+LHM = julia_eval("LHM")
+LCV = julia_eval("LCV")
+LSCV = julia_eval("LSCV")
+
+# Need to find a way to create a nice plot
 
 #   Now prepare land mask
 #   =======================
 
-bathname = "../data/gebco_30sec_4.nc"
+bathname <- file.path(datadir, "gebco_30sec_4.nc")
+bathnameURL <- "https://dox.uliege.be/index.php/s/RSwm4HPHImdZoQP/download"
 
-if !isfile(bathname)
-    download("https://b2drop.eudat.eu/s/ACcxUEZZi6a4ziR/download",bathname)
-else
-    @info("Bathymetry file already downloaded")
-end
+if (!file.exists(bathname)){
+  log_info("Downloading bathymetry file")
+  download.file(url = bathnameURL, destfile = bathname)
+}else{
+  log_info("Bathymetry file already downloaded")
+}
 
-bx,by,b = load_bath(bathname,true,xg,yg)
+# Extract the bathymetry
+julia_assign("bathname", bathname)
+julia_command("bx, by, b = load_bath(bathname,true,xg,yg);")
 
-pcolor(bx,by,b'); colorbar(orientation="horizontal")
-xlabel("Longitude")
-ylabel("Latitude")
-title("Depth")
+bx = julia_eval("bx")
+by = julia_eval("by")
+b = julia_eval("b")
 
-@show size(b)
+# Add a plot showing the bathymetry
+
+# RESTART HERE
+# NEED TO DO NICE PLOTS
+log_info((dim(b)));
 
 for j = 1:size(b,2)
     for i = 1:size(b,1)
