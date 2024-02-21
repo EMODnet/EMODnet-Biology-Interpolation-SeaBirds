@@ -163,7 +163,7 @@ system("julia")
 
 ### NCDatasets
 
-I might be necessary to issue this command __before__ starting the `R` session, in order to ensure the correct `libcurl` is used:
+It may be necessary to issue this command __before__ starting the `R` session, in order to ensure the correct `libcurl` is used:
 ```bash
 export LD_PRELOAD=${HOME}/.julia/juliaup/julia-1.10.0+0.x64.linux.gnu/lib/julia/libcurl.so.4.8.0
 ```
