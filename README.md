@@ -165,9 +165,10 @@ system("julia")
 
 I might be necessary to issue this command __before__ starting the `R` session, in order to ensure the correct `libcurl` is used:
 ```bash
-export LD_PRELOAD=/home/ctroupin/.julia/juliaup/julia-1.10.0+0.x64.linux.gnu/lib/julia/libcurl.so.4.8.0
+export LD_PRELOAD=${HOME}/.julia/juliaup/julia-1.10.0+0.x64.linux.gnu/lib/julia/libcurl.so.4.8.0
 ```
-(with the obvious adaptations in the path and in the library number).
+(with the obvious adaptations in the path and in the library number).    
+The previous command ensures that the file will be loaded before any other library.
 
 ```R
 julia_command("using NCDatasets")
@@ -188,6 +189,6 @@ Precompiling DIVAnd
 
 
 ```bash
-export LD_PRELOAD=/home/ctroupin/.julia/juliaup/julia-1.10.0+0.x64.linux.gnu/lib/julia/libcurl.so.4.8.0
+export LD_PRELOAD=${HOME}/.julia/juliaup/julia-1.10.0+0.x64.linux.gnu/lib/julia/libcurl.so.4.8.0
 Rscript DIVAnd_simple_1D.R
 ``````

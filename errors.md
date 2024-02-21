@@ -1,3 +1,8 @@
+
+## CURL_4 not found
+
+### Error 
+
 ```R
 julia_command("using DIVAnd")
 Error: Error happens in Julia.
@@ -20,19 +25,52 @@ Stacktrace:
 > 
 ```
 
+### Solution
+
+Before running the R code
+```bash
+export LD_PRELOAD=${HOME}/.julia/juliaup/julia-1.10.0+0.x64.linux.gnu/lib/julia/libcurl.so.4.8.0
+```
+with the necessary adaptation for the Julia version.
+
+## libhdf5_hl
+
+### Error
+
+```R
 Error: Error happens in Julia.
 InitError: could not load library "/home/ctroupin/.julia/artifacts/87831472e1d79c45830c3d71850680eb745345fb/lib/libnetcdf.so"
 libhdf5_hl.so.310: cannot open shared object file: No such file or directory
 Stacktrace:
+```
+
+### Solution
 
 
-https://alexander-barth.github.io/NCDatasets.jl/latest/issues/
-
-echo $LD_PRELOAD
-echo $LD_LIBRARY_PATH
-(→ empty)
 
 
+## internet routines cannot be loaded
+
+### Error
+
+```R
+Error in download.file(dataurl, turtlefile) : 
+  internet routines cannot be loaded
+In addition: Warning message:
+In download.file(dataurl, turtlefile) :
+  unable to load shared object '/usr/lib/R/modules//internet.so':
+  /home/ctroupin/.julia/juliaup/julia-1.10.0+0.x64.linux.gnu/lib/julia/libcurl.so.4.8.0: version `CURL_OPENSSL_4' not found (required by /usr/lib/R/modules//internet.so)
+```
+
+### Solution
+
+Don't run the `export LD_PRELOAD` command...
+
+## installation of package ‘terra’ had non-zero exit status
+
+### Error
+
+```R
 > install.packages("terra")
 Installing package into ‘/home/ctroupin/R/x86_64-pc-linux-gnu-library/4.1’
 (as ‘lib’ is unspecified)
@@ -57,31 +95,54 @@ The downloaded source packages are in
 Warning message:
 In install.packages("terra") :
   installation of package ‘terra’ had non-zero exit status
+```
 
-  
+### Solution
 
-Error in download.file(dataurl, turtlefile) : 
-  internet routines cannot be loaded
-In addition: Warning message:
-In download.file(dataurl, turtlefile) :
-  unable to load shared object '/usr/lib/R/modules//internet.so':
-  /home/ctroupin/.julia/juliaup/julia-1.10.0+0.x64.linux.gnu/lib/julia/libcurl.so.4.8.0: version `CURL_OPENSSL_4' not found (required by /usr/lib/R/modules//internet.so)
-
-
-
+```bash
 sudo apt-get install libgdal-dev
+```
 
 
-remotes::install_github("ropensci/rnaturalearthhires")
+## nghttp2_option_set_no_rfc9113_leading_and_trailing_ws_validation
 
+### Error
 
+```R
 > julia_install_package("Statistics")
 /usr/lib/R/bin/exec/R: symbol lookup error: /home/ctroupin/.julia/juliaup/julia-1.10.0+0.x64.linux.gnu/lib/julia/libcurl.so.4.8.0: undefined symbol: nghttp2_option_set_no_rfc9113_leading_and_trailing_ws_validation
+```
 
+### Solution
 
-> *** stack smashing detected ***: terminated
+???
 
+## version `CURL_OPENSSL_4' not found
 
+After running a `ggplot` command involving the `sf` library.
+
+### Error
+
+```R
 Error in dyn.load(file, DLLpath = DLLpath, ...) : 
   unable to load shared object '/home/ctroupin/R/x86_64-pc-linux-gnu-library/4.3/sf/libs/sf.so':
-  /home/ctroupin/.julia/juliaup/julia-1.10.0+0.x64.linux.gnu/lib/julia/libcurl.so.4.8.0: version `CURL_OPENSSL_4' not found (required by /lib/libgdal.so.30)
+  /home/ctroupin/.julia/juliaup/julia-1.10.1+0.x64.linux.gnu/lib/julia/libcurl.so.4.8.0: version `CURL_OPENSSL_4' not found (required by /lib/libgdal.so.30)
+```
+
+### Solution
+
+Same as before: don't execute `export LD_PRELOAD` before starting a session in `R`.
+
+
+## Installing new Julia packages
+
+### Error
+
+```R
+> julia_install_package("Statistics")
+Error in if (is.na(a)) return(-1L) : argument is of length zero
+```
+
+### Solution
+
+???

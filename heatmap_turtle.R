@@ -14,13 +14,16 @@
 library(logger)
 library(ggplot2)
 library(ggmap)
+library(JuliaCall)
 
-julia_command("using DIVAnd")
+# julia_command("using DIVAnd")
 julia_command("using PyPlot")
 julia_command("using Statistics")
 julia_command("using DelimitedFiles")
 julia_command("using LinearAlgebra")
 julia_command("using Random")
+
+options(download.file.method="wget") # Necessary to download files
 
 # Create directories
 datadir <- "./data/"
