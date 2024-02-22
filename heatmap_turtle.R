@@ -16,7 +16,7 @@ library(ggplot2)
 library(ggmap)
 library(JuliaCall)
 
-# julia_command("using DIVAnd")
+julia_command("using DIVAnd")
 julia_command("using PyPlot")
 julia_command("using Statistics")
 julia_command("using DelimitedFiles")
@@ -104,8 +104,6 @@ inflation <- rep(1., length(xo))
 #   Heatmap
 #   –––––––––
 
-seq(0, 1, length.out=npoints)
-
 xg <- seq(lonmin + dx/2, lonmax, dx)
 yg <- seq(latmin + dy/2, latmax, dy)
 julia_assign("xg", xg)
@@ -154,17 +152,33 @@ b = julia_eval("b")
 
 # RESTART HERE
 # NEED TO DO NICE PLOTS
-log_info((dim(b)));
+#log_info((dim(b)));
 
-for j = 1:size(b,2)
-    for i = 1:size(b,1)
+# Allocate mask
+mask <- matrix(TRUE, NX, NY)
+for (j in 1:dim(b)[2]) {
+    for (i in 1:dim(b)[1]) {        
         mask[i,j] = b[i,j] >= 0
-    end
-end
-pcolor(bx,by,Float64.(mask)')
-xlabel("Longitude")
-ylabel("Latitude")
-title("Mask")
+    }
+}
+
+# NEED TO PLOT HERE
+
+plot(coastlineWorld, col = 'grey',
+     projection = "+proj=eck3",
+     longitudelim=range(lon), 
+     latitudelim=range(lat))
+
+# add sst layer
+plot(coastlineWorld, col = 'grey',
+     projection = "+proj=eck3",
+     longitudelim=range(lon), 
+     latitudelim=range(lat))
+mapImage(lon, lat, sst, col=oceColorsTemperature)
+#pcolor(bx,by,Float64.(mask)')
+#xlabel("Longitude")
+#ylabel("Latitude")
+#title("Mask")
 
 #   First heatmap with uniform and automatic bandwidth
 #   ––––––––––––––––––––––––––––––––––––––––––––––––––––

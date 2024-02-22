@@ -189,6 +189,6 @@ Precompiling DIVAnd
 
 
 ```bash
-export LD_PRELOAD=${HOME}/.julia/juliaup/julia-1.10.0+0.x64.linux.gnu/lib/julia/libcurl.so.4.8.0
+export LD_PRELOAD=${HOME}/.julia/juliaup/julia-1.10.1+0.x64.linux.gnu/lib/julia/libcurl.so.4.8.0
 Rscript DIVAnd_simple_1D.R
 ``````
