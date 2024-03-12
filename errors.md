@@ -48,7 +48,6 @@ Stacktrace:
 
 
 
-
 ## internet routines cannot be loaded
 
 ### Error
@@ -64,7 +63,8 @@ In download.file(dataurl, turtlefile) :
 
 ### Solution
 
-Don't run the `export LD_PRELOAD` command...
+- Don't run the `export LD_PRELOAD` command... or
+- Execute `options(download.file.method="wget") # Necessary to download files`
 
 ## installation of package ‘terra’ had non-zero exit status
 
@@ -146,3 +146,49 @@ Error in if (is.na(a)) return(-1L) : argument is of length zero
 ### Solution
 
 ???
+
+## Installing `ncdf4` library
+
+### Error 
+
+The command `install.packages("ncdf4")` ends with:
+
+```R
+Error: package or namespace load failed for ‘ncdf4’ in dyn.load(file, DLLpath = DLLpath, ...):
+ unable to load shared object '/home/ctroupin/R/x86_64-pc-linux-gnu-library/4.3/00LOCK-ncdf4/00new/ncdf4/libs/ncdf4.so':
+  /home/ctroupin/.julia/juliaup/julia-1.10.1+0.x64.linux.gnu/lib/julia/libcurl.so.4.8.0: version `CURL_OPENSSL_4' not found (required by /usr/lib/x86_64-linux-gnu/libnetcdf.so.19)
+Error: loading failed
+Execution halted
+```
+
+### Solution?
+
+Perform the installation in a `R` session where `LD_PRELOAD` has not been set.     
+The library is installed by then it cannot be used in a session where `LD_PRELOAD` has been set.
+
+```R
+library(ncdf4)
+Error: package or namespace load failed for ‘ncdf4’ in dyn.load(file, DLLpath = DLLpath, ...):
+ unable to load shared object '/home/ctroupin/R/x86_64-pc-linux-gnu-library/4.3/ncdf4/libs/ncdf4.so':
+  /home/ctroupin/.julia/juliaup/julia-1.10.1+0.x64.linux.gnu/lib/julia/libcurl.so.4.8.0: version `CURL_OPENSSL_4' not found (required by /usr/lib/x86_64-linux-gnu/libnetcdf.so.19)
+```
+
+Hence the issue with the shared object libraries seem to be a general issue.
+
+## Using `oce` to make plots
+
+### Error
+
+```R
+> plot(coastlineWorld, col = 'grey',
++      projection = "+proj=eck3",
++      longitudelim=range(lon), 
++      latitudelim=range(lat))
+Error in dyn.load(file, DLLpath = DLLpath, ...) : 
+  unable to load shared object '/home/ctroupin/R/x86_64-pc-linux-gnu-library/4.3/sf/libs/sf.so':
+  /home/ctroupin/.julia/juliaup/julia-1.10.1+0.x64.linux.gnu/lib/julia/libcurl.so.4.8.0: version `CURL_OPENSSL_4' not found (required by /usr/lib/x86_64-linux-gnu/libgdal.so.32)
+```
+
+### Solution?
+
+Still issue due to library path.

@@ -15,9 +15,9 @@ library(logger)
 library(ggplot2)
 library(ggmap)
 library(JuliaCall)
-suppressPackageStartupMessages(library(oce))
-suppressPackageStartupMessages(library(ncdf4))
-suppressPackageStartupMessages(library(ocedata))
+library(oce)
+# library(ncdf4)
+library(ocedata)
 data("coastlineWorld")
 
 julia_command("using DIVAnd")
@@ -167,18 +167,12 @@ for (j in 1:dim(b)[2]) {
 }
 
 # NEED TO PLOT HERE
-
-plot(coastlineWorld, col = 'grey',
-     projection = "+proj=eck3",
-     longitudelim=range(lon), 
-     latitudelim=range(lat))
-
 # add sst layer
-plot(coastlineWorld, col = 'grey',
-     projection = "+proj=eck3",
-     longitudelim=range(lon), 
-     latitudelim=range(lat))
-mapImage(lon, lat, sst, col=oceColorsTemperature)
+# plot(coastlineWorld, col = 'grey',
+#      projection = "+proj=eck3",
+#      longitudelim=range(lon), 
+#      latitudelim=range(lat))
+#mapImage(lon, lat, sst, col=oceColorsTemperature)
 #pcolor(bx,by,Float64.(mask)')
 #xlabel("Longitude")
 #ylabel("Latitude")
@@ -187,7 +181,8 @@ mapImage(lon, lat, sst, col=oceColorsTemperature)
 #   First heatmap with uniform and automatic bandwidth
 #   ––––––––––––––––––––––––––––––––––––––––––––––––––––
 
-@time dens1,LHM,LCV,LSCV= DIVAnd_heatmap(mask,(pm,pn),(xi,yi),(xo,yo),inflation,0;Ladaptiveiterations=0)
+julia_assign("mask", mask)
+julia_command("@time dens1, LHM, LCV, LSCV= DIVAnd_heatmap(mask, (pm,pn), (xi,yi), (xo,yo), inflation,0; Ladaptiveiterations=0)")
 
 figure()
 pcolor(xip,yip,log.(dens1)),colorbar()
