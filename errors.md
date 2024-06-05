@@ -192,3 +192,21 @@ Error in dyn.load(file, DLLpath = DLLpath, ...) :
 ### Solution?
 
 Still issue due to library path.
+
+
+## 
+
+Error while loading conda entry point: conda-libmamba-solver (libarchive.so.19: cannot open shared object file: No such file or directory)
+
+### Solution
+
+https://github.com/conda/conda-libmamba-solver/issues/283
+
+```bash
+# make sure conda-forge is the only channel
+conda config --remove channels defaults
+conda config --add channels conda-forge
+
+# update all packages to make sure they're from conda-forge, not defaults
+conda update --all
+```

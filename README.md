@@ -66,6 +66,11 @@ nickname       Eye Holes
 version.string R version 4.1.2 (2021-11-01)
 nickname       Bird Hippie    
 ```
+* _Shortstop Beagle _
+```R
+version.string R version 4.2.3 (2023-03-15)
+nickname       Shortstop Beagle  
+```
 
 ### Installation of netCDF 
 
@@ -75,7 +80,7 @@ sudo apt-get install libnetcdf-dev
 ```
 then the library can be installed:
 ```R
-install.packages("ncdf4")
+  install.packages("ncdf4")
 ```
 
 ### Installation of other packages [optional]
@@ -189,6 +194,6 @@ Precompiling DIVAnd
 
 
 ```bash
-export LD_PRELOAD=${HOME}/.julia/juliaup/julia-1.10.1+0.x64.linux.gnu/lib/julia/libcurl.so.4.8.0
+export LD_PRELOAD=${HOME}/.julia/juliaup/julia-1.10.2+0.x64.linux.gnu/lib/julia/libcurl.so.4.8.0
 Rscript DIVAnd_simple_1D.R
 ``````
