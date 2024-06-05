@@ -45,10 +45,10 @@ doxbaseURL <- "https://dox.uliege.be/index.php/s/"
 dataurl <- paste(doxbaseURL,"IsWWlNxWeQDuarJ/download", sep = "")
 
 if (!file.exists(turtlefile)){
-    log_info("Downloading data file")
-    download.file(url = dataurl, destfile = turtlefile)
+  log_info("Downloading data file")
+  download.file(url = dataurl, destfile = turtlefile)
 }else{
-    log_info("Data file already downloaded")
+  log_info("Data file already downloaded")
 }
 
 # Read the CSV file
@@ -116,7 +116,44 @@ julia_assign("yg", yg)
 julia_command("mask, (pm,pn), (xi,yi) = DIVAnd.DIVAnd_rectdom(xg, yg);") 
 
 
-# From here generic approach 
+#   Now prepare land mask
+#   =======================
+
+bathname <- file.path(datadir, "gebco_30sec_4.nc")
+bathnameURL <- "https://dox.uliege.be/index.php/s/RSwm4HPHImdZoQP/download"
+
+if (!file.exists(bathname)){
+  log_info("Downloading bathymetry file")
+  download.file(url = bathnameURL, destfile = bathname)
+}else{
+  log_info("Bathymetry file already downloaded")
+}
+
+# Prepare the land-sea mask
+# Extract the bathymetry
+julia_assign("bathname", bathname)
+julia_command("bx, by, b = load_bath(bathname,true,xg,yg);")
+
+bx = julia_eval("bx")
+by = julia_eval("by")
+b = julia_eval("b")
+
+# Allocate mask
+mask <- matrix(TRUE, NX, NY)
+for (j in 1:dim(b)[2]) {
+  for (i in 1:dim(b)[1]) {        
+    mask[i,j] = b[i,j] >= 0
+  }
+}
+
+col <- "lightgray"
+p <- "+proj=merc"
+mapPlot(coastlineWorld, projection=p, longitudelim=range(lonmin,lonmax), 
+        latitudelim=range(latmin, latmax), col=col)
+mtext("Land-sea mask", line=line, adj=1, col=pcol, font=font)
+
+# Compute the density map 
+
 julia_assign("xo", xo)
 julia_assign("yo", yo)
 julia_assign("inflation", inflation)
@@ -131,52 +168,16 @@ LSCV = julia_eval("LSCV")
 
 # Need to find a way to create a nice plot
 
-#   Now prepare land mask
-#   =======================
-
-bathname <- file.path(datadir, "gebco_30sec_4.nc")
-bathnameURL <- "https://dox.uliege.be/index.php/s/RSwm4HPHImdZoQP/download"
-
-if (!file.exists(bathname)){
-  log_info("Downloading bathymetry file")
-  download.file(url = bathnameURL, destfile = bathname)
-}else{
-  log_info("Bathymetry file already downloaded")
-}
-
-# Extract the bathymetry
-julia_assign("bathname", bathname)
-julia_command("bx, by, b = load_bath(bathname,true,xg,yg);")
-
-bx = julia_eval("bx")
-by = julia_eval("by")
-b = julia_eval("b")
 
 # Add a plot showing the bathymetry
-
+p <- "+proj=merc"
+mapPlot(coastlineWorld, projection=p, longitudelim=c(-80,0), latitudelim=c(0,45), col=col)
+mtext(p, line=line, adj=1, col=pcol, font=font)
 # RESTART HERE
 # NEED TO DO NICE PLOTS
-#log_info((dim(b)));
+#log_info((dim(b)))
 
-# Allocate mask
-mask <- matrix(TRUE, NX, NY)
-for (j in 1:dim(b)[2]) {
-    for (i in 1:dim(b)[1]) {        
-        mask[i,j] = b[i,j] >= 0
-    }
-}
 
-# NEED TO PLOT HERE
-# add sst layer
-# plot(coastlineWorld, col = 'grey',
-#      projection = "+proj=eck3",
-#      longitudelim=range(lon), 
-#      latitudelim=range(lat))
-#mapImage(lon, lat, sst, col=oceColorsTemperature)
-#pcolor(bx,by,Float64.(mask)')
-#xlabel("Longitude")
-#ylabel("Latitude")
-#title("Mask")
 
 #   First heatmap with uniform and automatic bandwidth
 #   ––––––––––––––––––––––––––––––––––––––––––––––––––––
@@ -195,72 +196,29 @@ title("Density (log)")
 #   Now with adapted bandwidth
 #   ============================
 
-@time dens1,LHM,LCV,LSCV= DIVAnd_heatmap(mask,(pm,pn),(xi,yi),(xo,yo),inflation,0;Ladaptiveiterations=1)
+julia_command("@time dens1,LHM,LCV,LSCV= DIVAnd_heatmap(mask,(pm,pn),(xi,yi),(xo,yo),inflation,0;Ladaptiveiterations=1)
 
-figure()
-pcolor(xip,yip,log.(dens1)),colorbar()
-xlabel("Longitude")
-ylabel("Latitude")
-#scatter(xo,yo,s=1,c="white")
-title("Density (log)")
-
-
-@show LCV,LSCV,mean(LHM[1]),mean(LHM[2])
+# show LCV,LSCV,mean(LHM[1]),mean(LHM[2])
 
 #   But how much iterations ? Cross validation indicators can help
 #   ––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––––
 
-dens1,LHM,LCV,LSCV= DIVAnd_heatmap(mask,(pm,pn),(xi,yi),(xo,yo),inflation,0;Ladaptiveiterations=0)
-figure()
-pcolor(xip,yip,log.(dens1)),colorbar()
-xlabel("Longitude")
-ylabel("Latitude")
-title("$(mean(LHM[1])),$LCV,$LSCV")
+julia_command("dens1,LHM,LCV,LSCV= DIVAnd_heatmap(mask,(pm,pn),(xi,yi),(xo,yo),inflation,0;Ladaptiveiterations=0)")
 
-dens1,LHM,LCV,LSCV= DIVAnd_heatmap(mask,(pm,pn),(xi,yi),(xo,yo),inflation,0;Ladaptiveiterations=1)
-figure()
-pcolor(xip,yip,log.(dens1)),colorbar()
-xlabel("Longitude")
-ylabel("Latitude")
-title("$(mean(LHM[1])),$LCV,$LSCV")
+julia_command("dens1,LHM,LCV,LSCV= DIVAnd_heatmap(mask,(pm,pn),(xi,yi),(xo,yo),inflation,0;Ladaptiveiterations=1)")
 
-dens1,LHM,LCV,LSCV= DIVAnd_heatmap(mask,(pm,pn),(xi,yi),(xo,yo),inflation,0;Ladaptiveiterations=2)
-figure()
-pcolor(xip,yip,log.(dens1)),colorbar()
-xlabel("Longitude")
-ylabel("Latitude")
-title("$(mean(LHM[1])),$LCV,$LSCV")
+julia_command("dens1,LHM,LCV,LSCV= DIVAnd_heatmap(mask,(pm,pn),(xi,yi),(xo,yo),inflation,0;Ladaptiveiterations=2)")
 
-dens1,LHM,LCV,LSCV= DIVAnd_heatmap(mask,(pm,pn),(xi,yi),(xo,yo),inflation,0;Ladaptiveiterations=3)
-figure()
-pcolor(xip,yip,log.(dens1)),colorbar()
-xlabel("Longitude")
-ylabel("Latitude")
-title("$(mean(LHM[1])),$LCV,$LSCV")
+julia_command("dens1,LHM,LCV,LSCV= DIVAnd_heatmap(mask,(pm,pn),(xi,yi),(xo,yo),inflation,0;Ladaptiveiterations=3)")
 
-dens1,LHM,LCV,LSCV= DIVAnd_heatmap(mask,(pm,pn),(xi,yi),(xo,yo),inflation,0;Ladaptiveiterations=4)
-figure()
-pcolor(xip,yip,log.(dens1)),colorbar()
-xlabel("Longitude")
-ylabel("Latitude")
-title("$(mean(LHM[1])),$LCV,$LSCV")
+julia_command("dens1,LHM,LCV,LSCV= DIVAnd_heatmap(mask,(pm,pn),(xi,yi),(xo,yo),inflation,0;Ladaptiveiterations=4)")
 
-dens1,LHM,LCV,LSCV= DIVAnd_heatmap(mask,(pm,pn),(xi,yi),(xo,yo),inflation,0;Ladaptiveiterations=5)
-figure()
-pcolor(xip,yip,log.(dens1)),colorbar()
-xlabel("Longitude")
-ylabel("Latitude")
-title("$(mean(LHM[1])),$LCV,$LSCV")
+julia_command("dens1,LHM,LCV,LSCV= DIVAnd_heatmap(mask,(pm,pn),(xi,yi),(xo,yo),inflation,0;Ladaptiveiterations=5)")
 
 #   4 iterations yield highest likelyhood and lowest rms
 #   ======================================================
 
 dens1,LHM,LCV,LSCV= DIVAnd_heatmap(mask,(pm,pn),(xi,yi),(xo,yo),inflation,0;Ladaptiveiterations=4)
-figure()
-pcolor(xip,yip,log.(dens1)),colorbar()
-xlabel("Longitude")
-ylabel("Latitude")
-title("$(mean(LHM[1])),$LCV,$LSCV")
 
 pcolor(xip,yip,log.(LHM[1].*LHM[2])),colorbar()
 xlabel("Longitude")
