@@ -196,6 +196,14 @@ Precompiling DIVAnd
 ```bash
 export LD_PRELOAD=${HOME}/.julia/juliaup/julia-1.10.2+0.x64.linux.gnu/lib/julia/libcurl.so.4.8.0
 Rscript DIVAnd_simple_1D.R
-``````
+`````
 
 
+## Other solution: install everything with Conda?
+
+conda install conda-forge::r-base
+
+```bash
+which juliaup
+/home/ctroupin/conda_root/bin/juliaup
+```
