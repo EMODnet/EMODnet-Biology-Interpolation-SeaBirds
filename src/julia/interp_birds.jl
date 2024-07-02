@@ -34,8 +34,12 @@ begin
 	coast_f = cfeature.GSHHSFeature(scale="full")
 	coast_h = cfeature.GSHHSFeature(scale="h")
 	coast_i = cfeature.GSHHSFeature(scale="i")
-
 end
+
+# ╔═╡ 6e9669f7-4e5c-4d08-9c1a-51e860839d86
+md"""
+Apply DIVAnd heatmap compution on bird data
+"""
 
 # ╔═╡ 3684d7e2-feb8-48b3-ab05-816d56ccb8eb
 md"""
@@ -179,10 +183,11 @@ begin
 	ax1 = plt.subplot(111)
 	ax1.spines["right"].set_visible(false)
 	ax1.spines["top"].set_visible(false)
-	ax1.hist(events.eventDate, bins=1-yearmin+yearmax, rwidth=0.9, color=".35");
+	ax1.hist(total_count_coordinates.eventDate, bins=1-yearmin+yearmax, rwidth=0.9, color=".35");
 	ax1.set_xlabel("Time")
 	ax1.set_ylabel("Number of\nevents", rotation=0, ha="right")
-	figname1 = joinpath(figdir, "histogram_$(myspecies_)")
+	ax1.set_title(myspecies, fontsize=24)
+	figname1 = joinpath(figdir, "histogram_$(myspecies_).png")
 	plt.savefig(figname1)
 	plt.close(fig1)
 	PlutoUI.LocalResource(figname1)
@@ -197,15 +202,16 @@ md"""
 begin
 	fig2 = plt.figure(figsize=(12, 8))
 	ax2 = plt.subplot(111, projection=mainproj)
-    ax2.plot(events.decimalLongitude, events.decimalLatitude, "o", 
+	ax2.set_extent(domain)
+    ax2.plot(total_count_coordinates.decimalLongitude, total_count_coordinates.decimalLatitude, "o", 
         color="#00670A", ms=1, transform=datacrs, zorder=3)
     ax2.add_feature(coast_h, lw=.4, zorder=4)
-    gl = ax2.gridlines(crs=ccrs.PlateCarree(), draw_labels=true,
+    gl2 = ax2.gridlines(crs=ccrs.PlateCarree(), draw_labels=true,
                       linewidth=.5, color="gray", alpha=0.5, linestyle="--")
-    gl.xlabels_top = false
-    gl.ylabels_right = false
-    ax2.set_title("All events")
-	figname2 = joinpath(figdir, "all_events.png")
+    gl2.top_labels = false
+    gl2.right_labels = false
+    ax2.set_title("Observations of $(myspecies)", fontsize=24)
+	figname2 = joinpath(figdir, "observations_$(myspecies_).png")
     plt.savefig(figname2)
 	plt.close(fig2)
 	PlutoUI.LocalResource(figname2)
@@ -242,19 +248,31 @@ end
 
 # ╔═╡ 0096fc07-8e7e-4f98-addd-e756f752db6d
 begin
-	fig = plt.figure()
-	ax = plt.subplot(111, projection=mainproj)
-	ax.pcolormesh(xi, yi, maskbathy, cmap=plt.cm.binary_r, transform=datacrs)
+	fig3 = plt.figure(figsize=(12, 8))
+	ax3 = plt.subplot(111, projection=mainproj)
+	ax3.set_extent(domain)
+	ax3.pcolormesh(xi, yi, maskbathy, cmap=plt.cm.binary_r, transform=datacrs)
 	
-	gl2 = ax.gridlines(crs=ccrs.PlateCarree(), draw_labels=true,
+	gl3 = ax3.gridlines(crs=ccrs.PlateCarree(), draw_labels=true,
                       linewidth=.5, color="gray", alpha=0.5, linestyle="--")
+	gl3.top_labels = false
+    gl3.right_labels = false
    
 	figname3 = joinpath(datadir, "landsea_mask.png")
 	plt.savefig(figname3)
 	plt.close()
 	PlutoUI.LocalResource(figname3)
-	
 end
+
+# ╔═╡ 7e1737a2-69fb-4564-852c-8ab521eec9a4
+md"""
+## Perform computation
+"""
+
+# ╔═╡ 7b933738-1750-4a88-ba7e-b7e33d4cf6d0
+@time dens2, LHM, LCV, LSCV = DIVAnd.DIVAnd_heatmap(maskbathy, (pm,pn), (xi,yi), 
+    (total_count_coordinates.decimalLongitude, total_count_coordinates.decimalLatitude), 
+    ones(length(total_count_coordinates.decimalLatitude)), 20.)
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
 PLUTO_PROJECT_TOML_CONTENTS = """
@@ -1667,6 +1685,7 @@ version = "17.4.0+2"
 """
 
 # ╔═╡ Cell order:
+# ╟─6e9669f7-4e5c-4d08-9c1a-51e860839d86
 # ╠═4f3afffe-3231-11ef-0aea-8b6c089d68a1
 # ╟─3684d7e2-feb8-48b3-ab05-816d56ccb8eb
 # ╠═3a20f6b1-2f91-46f8-a32a-920572487c08
@@ -1693,5 +1712,7 @@ version = "17.4.0+2"
 # ╟─6834561d-8901-4dbd-8524-44a52a8aeb3a
 # ╠═fd17a810-7b10-431a-a02d-017f163ea953
 # ╠═0096fc07-8e7e-4f98-addd-e756f752db6d
+# ╟─7e1737a2-69fb-4564-852c-8ab521eec9a4
+# ╠═7b933738-1750-4a88-ba7e-b7e33d4cf6d0
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
