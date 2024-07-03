@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.42
+# v0.19.43
 
 using Markdown
 using InteractiveUtils
@@ -21,30 +21,33 @@ begin
 	using Dates
 	using DelimitedFiles, DataFrames
 	const plt = PyPlot
-	using Conda
 	using DIVAnd
 	using PyCall	
 	using PlutoUI
 	mpl = pyimport("matplotlib")
 	mpl.style.use("./emodnet.mplstyle")
-	ccrs = pyimport("cartopy.crs")
-	cfeature = pyimport("cartopy.feature")
-	datacrs = ccrs.PlateCarree();
-	mainproj = ccrs.Mercator()
-	coast_f = cfeature.GSHHSFeature(scale="full")
-	coast_h = cfeature.GSHHSFeature(scale="h")
-	coast_i = cfeature.GSHHSFeature(scale="i")
 end
 
 # ╔═╡ 6e9669f7-4e5c-4d08-9c1a-51e860839d86
 md"""
-# Apply DIVAnd heatmap compution on bird data
+# Apply DIVAnd gridding on sea bird data 🦩 🦅
+
+In this interactive notebook we perform an interpolation of sea bird observations (positions + counts) using `DIVAnd`.      
+
+The dataset is prepared according to the selected species (see drop-down list).
+
+A CSV file is also written, so it could be read by other tools.
+"""
+
+# ╔═╡ 662960fc-9a6d-4b05-ae5e-bbcd5dab05cf
+md"""
+### Cartopy configuration
 """
 
 # ╔═╡ 3684d7e2-feb8-48b3-ab05-816d56ccb8eb
 md"""
 ## Data
-Downloaded from https://www.vliz.be/en/imis?module=dataset&dasid=3117. 
+Downloaded from [https://www.vliz.be/en/imis?module=dataset&dasid=3117](https://www.vliz.be/en/imis?module=dataset&dasid=3117). 
 
 > Vanermen N, Stienen EWM, Fijn R, Markones N, Holdsworth N, Osypchuk A, Pinto C, Desmet P (2022): European Seabirds at Sea (ESAS). ICES, Copenhagen, Denmark. https://esas.ices.dk. https://doi.org/10.14284/601
 
@@ -53,10 +56,20 @@ Two files are processed:
 - `occurrence.txt`: it gives the count for different taxa, and relate them to the eventID read from the previous fole. 
 """
 
+# ╔═╡ 88455c82-b59a-4664-ba20-3db321f276ac
+md"""
+### Switches for the plots
+#### Create plots
+!!! info "Select the plots to be created"
+	Activate the boxes below to get the results, mask and/or observations.
+"""
+
+# ╔═╡ 179166ff-b949-415b-97d6-2c1d556f7421
+@bind plotting_options MultiCheckBox(["Plot results", "Plot mask", "Plot observations", "Plot histogram"])
+
 # ╔═╡ 3a20f6b1-2f91-46f8-a32a-920572487c08
 begin
-	domain = (-55, 21, 14., 80.)
-	doplot = false
+	domain = (-55, 21, 14., 72.)
 	
 	datadir = "../../data"
 	figdir = "../../figures"
@@ -64,14 +77,20 @@ begin
 	
 	datafileevent = joinpath(datadir, "event.txt")
 	datafileoccur = joinpath(datadir, "occurrence.txt")
-	
-	# The "small" files, used for testing, are obtained by taking the first 200 lines of the 
-	# initial files
-	datafileevent2 = joinpath(datadir, "event_small.txt")
-	datafileoccur2 = joinpath(datadir, "occurrence200.csv")
-	
-	isfile(datafileevent) & isfile(datafileoccur)
+end
 
+# ╔═╡ 55759843-16c0-420d-97c4-7cf85319a27b
+begin
+	ccrs = pyimport("cartopy.crs")
+	cfeature = pyimport("cartopy.feature")
+	datacrs = ccrs.PlateCarree();
+	mainproj = ccrs.Mercator();
+	# mainproj = ccrs.TransverseMercator(32)
+	mainproj = ccrs.Mercator(central_longitude=0.5*(domain[1] + domain[2]), 
+        min_latitude=domain[3], max_latitude=domain[4])
+	coast_f = cfeature.GSHHSFeature(scale="full")
+	coast_h = cfeature.GSHHSFeature(scale="h")
+	coast_i = cfeature.GSHHSFeature(scale="i")
 end
 
 # ╔═╡ e1c13b19-09cf-4f1c-a38a-cb907e69f9fc
@@ -175,11 +194,11 @@ end
 
 # ╔═╡ d9873211-17ea-4e06-b8fb-33f563d4bd17
 md"""
-### Time histogram of the observations
+### 📊 Time histogram of the observations
 """
 
 # ╔═╡ a565569e-c0a5-46d6-b59e-b403eb9b2f66
-begin
+if "Plot histogram" in plotting_options
 	yearmin = minimum(Dates.year.(events.eventDate))
 	yearmax = maximum(Dates.year.(events.eventDate))
 	fig1 = plt.figure()
@@ -202,18 +221,17 @@ md"""
 """
 
 # ╔═╡ 594ac3a2-5487-4ea1-8414-aa1a74e7775b
-begin
+if "Plot observations" in plotting_options
 	fig2 = plt.figure(figsize=(12, 8))
 	ax2 = plt.subplot(111, projection=mainproj)
 	ax2.set_extent(domain)
-    ax2.plot(total_count_coordinates.decimalLongitude, total_count_coordinates.decimalLatitude, "o", 
-        color="#00670A", ms=1, transform=datacrs, zorder=3)
+    ax2.scatter(total_count_coordinates.decimalLongitude, total_count_coordinates.decimalLatitude, s=5, c=total_count_coordinates.total_count, transform=datacrs, zorder=3, cmap=plt.cm.hot_r, vmin=0, vmax=30)
     ax2.add_feature(coast_h, lw=.4, zorder=4)
     gl2 = ax2.gridlines(crs=ccrs.PlateCarree(), draw_labels=true,
                       linewidth=.5, color="gray", alpha=0.5, linestyle="--")
     gl2.top_labels = false
     gl2.right_labels = false
-    ax2.set_title("Observations of $(myspecies)", fontsize=24)
+    ax2.set_title("Observations of $(myspecies)", fontsize=20)
 	figname2 = joinpath(figdir, "observations_$(myspecies_).png")
     plt.savefig(figname2)
 	plt.close(fig2)
@@ -223,13 +241,13 @@ end
 # ╔═╡ 5e1ca2cd-7049-42ca-9379-24f5a11ec797
 md"""
 ## Perform DIVAnd heatmap computation
-### 
+### Set domain, resolution and metrics
 """
 
 # ╔═╡ 7790b356-05c8-4272-b2d7-30aee0b702b6
 begin
-	deltalon = 1.
-	deltalat = 1.
+	deltalon = 0.5
+	deltalat = 0.5
 	lonr = domain[1]:deltalon:domain[2]
 	latr = domain[3]:deltalat:domain[4]
 	
@@ -250,7 +268,7 @@ begin
 end
 
 # ╔═╡ 0096fc07-8e7e-4f98-addd-e756f752db6d
-begin
+if "Plot mask" in plotting_options
 	fig3 = plt.figure(figsize=(12, 8))
 	ax3 = plt.subplot(111, projection=mainproj)
 	ax3.set_extent(domain)
@@ -275,7 +293,10 @@ md"""
 # ╔═╡ 7b933738-1750-4a88-ba7e-b7e33d4cf6d0
 @time dens2, LHM, LCV, LSCV = DIVAnd.DIVAnd_heatmap(maskbathy, (pm,pn), (xi,yi), 
     (total_count_coordinates.decimalLongitude, total_count_coordinates.decimalLatitude), 
-    ones(length(total_count_coordinates.decimalLatitude)), 20., nmax=100000)
+    ones(length(total_count_coordinates.decimalLatitude)), 5., nmax=100000)
+
+# ╔═╡ f55d9c0d-6096-46ec-a5f2-45ad6ba9014c
+fi, s = DIVAndrun(maskbathy, (pm, pn), (xi, yi), (total_count_coordinates.decimalLongitude, total_count_coordinates.decimalLatitude), Float64.(total_count_coordinates.total_count), 5., 10.);
 
 # ╔═╡ fb517a88-0645-481c-b2bf-f4f8bf6b0530
 md"""
@@ -283,11 +304,11 @@ md"""
 """
 
 # ╔═╡ 51cf2712-1094-4d25-a260-78d5571a4ee0
-begin
+if "Plot results" in plotting_options
 	fig4 = plt.figure(figsize=(12, 8))
-    ax4 = plt.subplot(111, projection=ccrs.Mercator())
+    ax4 = plt.subplot(111, projection=mainproj)
     ax4.set_extent(domain)
-    pcm = ax4.pcolormesh(xi, yi, dens2, transform=datacrs, zorder=3, cmap=plt.cm.hot_r)
+    pcm = ax4.pcolormesh(xi, yi, fi, transform=datacrs, zorder=3, cmap=plt.cm.hot_r)
     ax4.add_feature(coast_h, lw=.4, zorder=5)
 	cb = plt.colorbar(pcm)
     
@@ -295,7 +316,7 @@ begin
                       linewidth=.5, color="gray", alpha=1, linestyle="--")
     gl4.top_labels  = false
     gl4.right_labels = false
-    ax4.set_title("Heat map for $(myspecies)")
+    ax4.set_title("Gridded count of ''$(myspecies)''")
     figname4 = joinpath(datadir, "$(myspecies_)_heatmap.png")
 	plt.savefig(figname4)
 	plt.close()
@@ -306,7 +327,6 @@ end
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
-Conda = "8f4d0f93-b110-5947-807f-2305c1781a2d"
 DIVAnd = "efc8151c-67de-5a8f-9a35-d8f54746ae9d"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -317,7 +337,6 @@ PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
 
 [compat]
 CSV = "~0.10.14"
-Conda = "~1.10.0"
 DIVAnd = "~2.7.11"
 DataFrames = "~1.6.1"
 DelimitedFiles = "~1.9.1"
@@ -330,14 +349,14 @@ PyPlot = "~2.11.2"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.10.4"
+julia_version = "1.11.0-rc1"
 manifest_format = "2.0"
-project_hash = "1ab2e4a5755ba27569155441d738662fd594dac7"
+project_hash = "eb13356126a8bb5f903824f0e1d69cd8467d687e"
 
 [[deps.ADTypes]]
-git-tree-sha1 = "ae44a0c3d68a420d4ac0fa1f7e0c034ccecb6dc5"
+git-tree-sha1 = "7a6b285f217ba92b5b474b783b4c2e8cf8218aaa"
 uuid = "47edcb42-4c32-4615-8424-f2b9edc5f35b"
-version = "1.5.2"
+version = "1.5.3"
 
     [deps.ADTypes.extensions]
     ADTypesChainRulesCoreExt = "ChainRulesCore"
@@ -392,7 +411,7 @@ version = "0.6.0"
 
 [[deps.ArgTools]]
 uuid = "0dad84c5-d112-42e6-8d28-ef12dabb789f"
-version = "1.1.1"
+version = "1.1.2"
 
 [[deps.ArrayInterface]]
 deps = ["Adapt", "LinearAlgebra", "SparseArrays", "SuiteSparse"]
@@ -434,6 +453,7 @@ weakdeps = ["SparseArrays"]
 
 [[deps.Artifacts]]
 uuid = "56f22d72-fd6d-98f1-02f0-08ddc0907c33"
+version = "1.11.0"
 
 [[deps.AxisAlgorithms]]
 deps = ["LinearAlgebra", "Random", "SparseArrays", "WoodburyMatrices"]
@@ -443,6 +463,7 @@ version = "1.1.0"
 
 [[deps.Base64]]
 uuid = "2a0f44e3-6c83-55bd-87e4-b1978d98bd5f"
+version = "1.11.0"
 
 [[deps.BitFlags]]
 git-tree-sha1 = "0691e34b3bb8be9307330f88d1a3c3f25466c24d"
@@ -503,9 +524,9 @@ version = "0.1.13"
 
 [[deps.CodecZlib]]
 deps = ["TranscodingStreams", "Zlib_jll"]
-git-tree-sha1 = "59939d8a997469ee05c4b4944560a820f9ba0d73"
+git-tree-sha1 = "b8fe8546d52ca154ac556809e10c75e6e7430ac8"
 uuid = "944b1d66-785c-5afd-91f1-9de20f533193"
-version = "0.7.4"
+version = "0.7.5"
 
 [[deps.ColorTypes]]
 deps = ["FixedPointNumbers", "Random"]
@@ -632,6 +653,7 @@ version = "1.0.0"
 [[deps.Dates]]
 deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
+version = "1.11.0"
 
 [[deps.DelimitedFiles]]
 deps = ["Mmap"]
@@ -648,6 +670,7 @@ version = "0.3.23"
 [[deps.Distributed]]
 deps = ["Random", "Serialization", "Sockets"]
 uuid = "8ba89e20-285c-5b6f-9357-94700520ee1b"
+version = "1.11.0"
 
 [[deps.DocStringExtensions]]
 deps = ["LibGit2"]
@@ -696,6 +719,7 @@ version = "0.9.21"
 
 [[deps.FileWatching]]
 uuid = "7b1f6079-737a-58dc-b8bc-7a2ca5c1b5ee"
+version = "1.11.0"
 
 [[deps.FillArrays]]
 deps = ["LinearAlgebra"]
@@ -733,11 +757,12 @@ version = "0.1.3"
 [[deps.Future]]
 deps = ["Random"]
 uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
+version = "1.11.0"
 
 [[deps.GMP_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "781609d7-10c4-51f6-84f2-b8444358ff6d"
-version = "6.2.1+6"
+version = "6.3.0+0"
 
 [[deps.GPUArraysCore]]
 deps = ["Adapt"]
@@ -819,6 +844,7 @@ version = "2024.1.0+0"
 [[deps.InteractiveUtils]]
 deps = ["Markdown"]
 uuid = "b77e0a4c-d291-57a0-90e8-8db25a27a240"
+version = "1.11.0"
 
 [[deps.Interpolations]]
 deps = ["Adapt", "AxisAlgorithms", "ChainRulesCore", "LinearAlgebra", "OffsetArrays", "Random", "Ratios", "Requires", "SharedArrays", "SparseArrays", "StaticArrays", "WoodburyMatrices"]
@@ -915,9 +941,9 @@ version = "0.1.17"
 
 [[deps.LazyArrays]]
 deps = ["ArrayLayouts", "FillArrays", "LinearAlgebra", "MacroTools", "SparseArrays"]
-git-tree-sha1 = "fb43bbe51db62510b032b85e157ea87d77b2fa07"
+git-tree-sha1 = "8e8b794ab7f3789e408d691e9e22c2129f0adcc9"
 uuid = "5078a376-72f3-5289-bfd5-ec5146d43c02"
-version = "2.1.0"
+version = "2.1.2"
 
     [deps.LazyArrays.extensions]
     LazyArraysBandedMatricesExt = "BandedMatrices"
@@ -934,6 +960,7 @@ version = "2.1.0"
 [[deps.LazyArtifacts]]
 deps = ["Artifacts", "Pkg"]
 uuid = "4af54fe1-eca0-43a8-85a7-787d91b784e3"
+version = "1.11.0"
 
 [[deps.LibCURL]]
 deps = ["LibCURL_jll", "MozillaCACerts_jll"]
@@ -943,16 +970,17 @@ version = "0.6.4"
 [[deps.LibCURL_jll]]
 deps = ["Artifacts", "LibSSH2_jll", "Libdl", "MbedTLS_jll", "Zlib_jll", "nghttp2_jll"]
 uuid = "deac9b47-8bc7-5906-a0fe-35ac56dc84c0"
-version = "8.4.0+0"
+version = "8.6.0+0"
 
 [[deps.LibGit2]]
 deps = ["Base64", "LibGit2_jll", "NetworkOptions", "Printf", "SHA"]
 uuid = "76f85450-5226-5b5a-8eaa-529ad045b433"
+version = "1.11.0"
 
 [[deps.LibGit2_jll]]
 deps = ["Artifacts", "LibSSH2_jll", "Libdl", "MbedTLS_jll"]
 uuid = "e37daf67-58a4-590a-8e99-b0245dd2ffc5"
-version = "1.6.4+0"
+version = "1.7.2+0"
 
 [[deps.LibSSH2_jll]]
 deps = ["Artifacts", "Libdl", "MbedTLS_jll"]
@@ -961,6 +989,7 @@ version = "1.11.0+1"
 
 [[deps.Libdl]]
 uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
+version = "1.11.0"
 
 [[deps.Libiconv_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
@@ -971,6 +1000,7 @@ version = "1.17.0+0"
 [[deps.LinearAlgebra]]
 deps = ["Libdl", "OpenBLAS_jll", "libblastrampoline_jll"]
 uuid = "37e2e46d-f89d-539d-b4ee-838fcccc9c8e"
+version = "1.11.0"
 
 [[deps.LinearSolve]]
 deps = ["ArrayInterface", "ChainRulesCore", "ConcreteStructs", "DocStringExtensions", "EnumX", "FastLapackInterface", "GPUArraysCore", "InteractiveUtils", "KLU", "Krylov", "LazyArrays", "Libdl", "LinearAlgebra", "MKL_jll", "Markdown", "PrecompileTools", "Preferences", "RecursiveFactorization", "Reexport", "SciMLBase", "SciMLOperators", "Setfield", "SparseArrays", "Sparspak", "StaticArraysCore", "UnPack"]
@@ -1027,6 +1057,7 @@ version = "0.3.28"
 
 [[deps.Logging]]
 uuid = "56ddb016-857b-54e1-b83d-db4d58db5568"
+version = "1.11.0"
 
 [[deps.LoggingExtras]]
 deps = ["Dates", "Logging"]
@@ -1098,6 +1129,7 @@ version = "0.1.8"
 [[deps.Markdown]]
 deps = ["Base64"]
 uuid = "d6f4376e-aef5-505a-96c1-9c027394607a"
+version = "1.11.0"
 
 [[deps.MbedTLS]]
 deps = ["Dates", "MbedTLS_jll", "MozillaCACerts_jll", "NetworkOptions", "Random", "Sockets"]
@@ -1108,7 +1140,7 @@ version = "1.1.9"
 [[deps.MbedTLS_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "c8ffd9c3-330d-5841-b78e-0817d7145fa1"
-version = "2.28.2+1"
+version = "2.28.6+0"
 
 [[deps.MicrosoftMPI_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -1124,10 +1156,11 @@ version = "1.2.0"
 
 [[deps.Mmap]]
 uuid = "a63ad114-7e13-5084-954f-fe012c677804"
+version = "1.11.0"
 
 [[deps.MozillaCACerts_jll]]
 uuid = "14a3606d-f60d-562e-9121-12d972cd8159"
-version = "2023.1.10"
+version = "2023.12.12"
 
 [[deps.Mustache]]
 deps = ["Printf", "Tables"]
@@ -1169,7 +1202,7 @@ weakdeps = ["Adapt"]
 [[deps.OpenBLAS_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "Libdl"]
 uuid = "4536629a-c528-5b80-bd46-f80d51c5b363"
-version = "0.3.23+4"
+version = "0.3.27+1"
 
 [[deps.OpenLibm_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -1218,9 +1251,13 @@ uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
 version = "2.8.1"
 
 [[deps.Pkg]]
-deps = ["Artifacts", "Dates", "Downloads", "FileWatching", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "REPL", "Random", "SHA", "Serialization", "TOML", "Tar", "UUIDs", "p7zip_jll"]
+deps = ["Artifacts", "Dates", "Downloads", "FileWatching", "LibGit2", "Libdl", "Logging", "Markdown", "Printf", "Random", "SHA", "TOML", "Tar", "UUIDs", "p7zip_jll"]
 uuid = "44cfe95a-1eb2-52ea-b672-e2afdf69b78f"
-version = "1.10.0"
+version = "1.11.0"
+weakdeps = ["REPL"]
+
+    [deps.Pkg.extensions]
+    REPLExt = "REPL"
 
 [[deps.PlutoUI]]
 deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "FixedPointNumbers", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "MIMEs", "Markdown", "Random", "Reexport", "URIs", "UUIDs"]
@@ -1267,6 +1304,7 @@ version = "2.3.2"
 [[deps.Printf]]
 deps = ["Unicode"]
 uuid = "de0858da-6303-5e67-8744-51eddeeeb8d7"
+version = "1.11.0"
 
 [[deps.PyCall]]
 deps = ["Conda", "Dates", "Libdl", "LinearAlgebra", "MacroTools", "Serialization", "VersionParsing"]
@@ -1276,17 +1314,19 @@ version = "1.96.4"
 
 [[deps.PyPlot]]
 deps = ["Colors", "LaTeXStrings", "PyCall", "Sockets", "Test", "VersionParsing"]
-git-tree-sha1 = "9220a9dae0369f431168d60adab635f88aca7857"
+git-tree-sha1 = "95460fef209e8a1d64f58e107563d5bff8181976"
 uuid = "d330b81b-6aea-500a-939a-2ce795aea3ee"
-version = "2.11.2"
+version = "2.11.3"
 
 [[deps.REPL]]
-deps = ["InteractiveUtils", "Markdown", "Sockets", "Unicode"]
+deps = ["InteractiveUtils", "Markdown", "Sockets", "StyledStrings", "Unicode"]
 uuid = "3fa0cd96-eef1-5676-8a61-b3b8758bbffb"
+version = "1.11.0"
 
 [[deps.Random]]
 deps = ["SHA"]
 uuid = "9a3f8284-a2c9-5f02-9a11-845980a1fd5c"
+version = "1.11.0"
 
 [[deps.Ratios]]
 deps = ["Requires"]
@@ -1368,9 +1408,9 @@ version = "0.6.43"
 
 [[deps.SciMLBase]]
 deps = ["ADTypes", "Accessors", "ArrayInterface", "CommonSolve", "ConstructionBase", "Distributed", "DocStringExtensions", "EnumX", "FunctionWrappersWrappers", "IteratorInterfaceExtensions", "LinearAlgebra", "Logging", "Markdown", "PrecompileTools", "Preferences", "Printf", "RecipesBase", "RecursiveArrayTools", "Reexport", "RuntimeGeneratedFunctions", "SciMLOperators", "SciMLStructures", "StaticArraysCore", "Statistics", "SymbolicIndexingInterface", "Tables"]
-git-tree-sha1 = "7a6c5c8c38d2e37f45d4686c3598c20c1aebf48e"
+git-tree-sha1 = "281e82f2ae2b73262fed9e7a518711eb7feb7e59"
 uuid = "0bca4576-84f4-4d90-8ffe-ffa030f20462"
-version = "2.41.3"
+version = "2.42.0"
 
     [deps.SciMLBase.extensions]
     SciMLBaseChainRulesCoreExt = "ChainRulesCore"
@@ -1411,6 +1451,7 @@ version = "1.4.3"
 
 [[deps.Serialization]]
 uuid = "9e88b42a-f829-5b0c-bbe9-9e923198166b"
+version = "1.11.0"
 
 [[deps.Setfield]]
 deps = ["ConstructionBase", "Future", "MacroTools", "StaticArraysCore"]
@@ -1421,6 +1462,7 @@ version = "1.1.1"
 [[deps.SharedArrays]]
 deps = ["Distributed", "Mmap", "Random", "Serialization"]
 uuid = "1a1011a3-84de-559e-8e89-a11a2f7dc383"
+version = "1.11.0"
 
 [[deps.SimpleBufferStream]]
 git-tree-sha1 = "874e8867b33a00e784c8a7e4b60afe9e037b74e1"
@@ -1429,6 +1471,7 @@ version = "1.1.0"
 
 [[deps.Sockets]]
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"
+version = "1.11.0"
 
 [[deps.SortingAlgorithms]]
 deps = ["DataStructures"]
@@ -1439,7 +1482,7 @@ version = "1.2.1"
 [[deps.SparseArrays]]
 deps = ["Libdl", "LinearAlgebra", "Random", "Serialization", "SuiteSparse_jll"]
 uuid = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
-version = "1.10.0"
+version = "1.11.0"
 
 [[deps.Sparspak]]
 deps = ["Libdl", "LinearAlgebra", "Logging", "OffsetArrays", "Printf", "SparseArrays", "Test"]
@@ -1476,9 +1519,9 @@ weakdeps = ["OffsetArrays", "StaticArrays"]
 
 [[deps.StaticArrays]]
 deps = ["LinearAlgebra", "PrecompileTools", "Random", "StaticArraysCore"]
-git-tree-sha1 = "20833c5b7f7edf0e5026f23db7f268e4f23ec577"
+git-tree-sha1 = "eeafab08ae20c62c44c8399ccb9354a04b80db50"
 uuid = "90137ffa-7385-5640-81b9-e52037218182"
-version = "1.9.6"
+version = "1.9.7"
 weakdeps = ["ChainRulesCore", "Statistics"]
 
     [deps.StaticArrays.extensions]
@@ -1491,9 +1534,14 @@ uuid = "1e83bf80-4336-4d27-bf5d-d5a4f845583c"
 version = "1.4.3"
 
 [[deps.Statistics]]
-deps = ["LinearAlgebra", "SparseArrays"]
+deps = ["LinearAlgebra"]
+git-tree-sha1 = "ae3bb1eb3bba077cd276bc5cfc337cc65c3075c0"
 uuid = "10745b16-79ce-11e8-11f9-7d13ad32a3b2"
-version = "1.10.0"
+version = "1.11.1"
+weakdeps = ["SparseArrays"]
+
+    [deps.Statistics.extensions]
+    SparseArraysExt = ["SparseArrays"]
 
 [[deps.StrideArraysCore]]
 deps = ["ArrayInterface", "CloseOpenIntervals", "IfElse", "LayoutPointers", "LinearAlgebra", "ManualMemory", "SIMDTypes", "Static", "StaticArrayInterface", "ThreadingUtilities"]
@@ -1507,6 +1555,10 @@ git-tree-sha1 = "a04cabe79c5f01f4d723cc6704070ada0b9d46d5"
 uuid = "892a3eda-7b42-436c-8928-eab12a02cf0e"
 version = "0.3.4"
 
+[[deps.StyledStrings]]
+uuid = "f489334b-da3d-4c2e-b8f0-e476e12c162b"
+version = "1.11.0"
+
 [[deps.SuiteSparse]]
 deps = ["Libdl", "LinearAlgebra", "Serialization", "SparseArrays"]
 uuid = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
@@ -1514,7 +1566,7 @@ uuid = "4607b0f0-06f3-5cda-b6b1-a6196a1729e9"
 [[deps.SuiteSparse_jll]]
 deps = ["Artifacts", "Libdl", "libblastrampoline_jll"]
 uuid = "bea87d4a-7f5b-5778-9afe-8cc45184846c"
-version = "7.2.1+1"
+version = "7.6.0+0"
 
 [[deps.SymbolicIndexingInterface]]
 deps = ["Accessors", "ArrayInterface", "RuntimeGeneratedFunctions", "StaticArraysCore"]
@@ -1547,6 +1599,7 @@ version = "1.10.0"
 [[deps.Test]]
 deps = ["InteractiveUtils", "Logging", "Random", "Serialization"]
 uuid = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+version = "1.11.0"
 
 [[deps.ThreadingUtilities]]
 deps = ["ManualMemory"]
@@ -1555,9 +1608,9 @@ uuid = "8290d209-cae3-49c0-8002-c8c24d57dab5"
 version = "0.5.2"
 
 [[deps.TranscodingStreams]]
-git-tree-sha1 = "d73336d81cafdc277ff45558bb7eaa2b04a8e472"
+git-tree-sha1 = "60df3f8126263c0d6b357b9a1017bb94f53e3582"
 uuid = "3bb67fe8-82b1-5028-8e26-92a6c54297fa"
-version = "0.10.10"
+version = "0.11.0"
 weakdeps = ["Random", "Test"]
 
     [deps.TranscodingStreams.extensions]
@@ -1582,6 +1635,7 @@ version = "1.5.1"
 [[deps.UUIDs]]
 deps = ["Random", "SHA"]
 uuid = "cf7118a7-6976-5b1a-9a39-7adc72f591a4"
+version = "1.11.0"
 
 [[deps.UnPack]]
 git-tree-sha1 = "387c1f73762231e86e0c9c5443ce3b4a0a9a0c2b"
@@ -1590,6 +1644,7 @@ version = "1.0.2"
 
 [[deps.Unicode]]
 uuid = "4ec0a83e-493e-50e2-b9ac-8f72acf5a8f5"
+version = "1.11.0"
 
 [[deps.VectorizationBase]]
 deps = ["ArrayInterface", "CPUSummary", "HostCPUFeatures", "IfElse", "LayoutPointers", "Libdl", "LinearAlgebra", "SIMDTypes", "Static", "StaticArrayInterface"]
@@ -1668,7 +1723,7 @@ version = "1.10.1+0"
 [[deps.nghttp2_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "8e850ede-7688-5339-a07c-302acd2aaf8d"
-version = "1.52.0+1"
+version = "1.59.0+0"
 
 [[deps.oneTBB_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
@@ -1685,7 +1740,11 @@ version = "17.4.0+2"
 # ╔═╡ Cell order:
 # ╟─6e9669f7-4e5c-4d08-9c1a-51e860839d86
 # ╠═4f3afffe-3231-11ef-0aea-8b6c089d68a1
+# ╟─662960fc-9a6d-4b05-ae5e-bbcd5dab05cf
+# ╠═55759843-16c0-420d-97c4-7cf85319a27b
 # ╟─3684d7e2-feb8-48b3-ab05-816d56ccb8eb
+# ╟─88455c82-b59a-4664-ba20-3db321f276ac
+# ╠═179166ff-b949-415b-97d6-2c1d556f7421
 # ╠═3a20f6b1-2f91-46f8-a32a-920572487c08
 # ╟─e1c13b19-09cf-4f1c-a38a-cb907e69f9fc
 # ╠═6288868f-a120-43e9-addb-5eb3a8780282
@@ -1696,13 +1755,13 @@ version = "17.4.0+2"
 # ╟─3bcef6d3-c956-4ea7-8576-0d291e1e82e3
 # ╠═a554357a-58e8-48dc-95d4-263991f4272e
 # ╠═76cdf3cd-80a6-4596-99f8-9501be0c1a06
-# ╠═8cbac282-8fc8-452d-9144-63dfbc5d9393
+# ╟─8cbac282-8fc8-452d-9144-63dfbc5d9393
 # ╟─809d82b6-6ff6-4507-a0f7-cf98fcd21db7
 # ╠═d95f5715-90e7-4de1-b761-bb4b3916e37f
 # ╟─eb9cc268-7ec4-456e-b155-ec82a1c07823
 # ╠═df2aa0a0-c2a7-49c1-affa-06173e35e3db
 # ╟─d9873211-17ea-4e06-b8fb-33f563d4bd17
-# ╠═a565569e-c0a5-46d6-b59e-b403eb9b2f66
+# ╟─a565569e-c0a5-46d6-b59e-b403eb9b2f66
 # ╟─57b4b501-fed0-4c63-8ffb-e32ceec7adf6
 # ╠═594ac3a2-5487-4ea1-8414-aa1a74e7775b
 # ╟─5e1ca2cd-7049-42ca-9379-24f5a11ec797
@@ -1712,7 +1771,8 @@ version = "17.4.0+2"
 # ╠═0096fc07-8e7e-4f98-addd-e756f752db6d
 # ╟─7e1737a2-69fb-4564-852c-8ab521eec9a4
 # ╠═7b933738-1750-4a88-ba7e-b7e33d4cf6d0
+# ╠═f55d9c0d-6096-46ec-a5f2-45ad6ba9014c
 # ╟─fb517a88-0645-481c-b2bf-f4f8bf6b0530
-# ╠═51cf2712-1094-4d25-a260-78d5571a4ee0
+# ╟─51cf2712-1094-4d25-a260-78d5571a4ee0
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
