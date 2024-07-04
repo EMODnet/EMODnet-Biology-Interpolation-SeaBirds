@@ -183,6 +183,7 @@ end
 # ╔═╡ eb9cc268-7ec4-456e-b155-ec82a1c07823
 md"""
 #### Write into a CSV file
+The file can then be used in other languages (namely: `R`) or for other purposes.
 """
 
 # ╔═╡ df2aa0a0-c2a7-49c1-affa-06173e35e3db
@@ -288,27 +289,49 @@ end
 # ╔═╡ 7e1737a2-69fb-4564-852c-8ab521eec9a4
 md"""
 ## Perform computation
+### Set the values of the analysis parameters
 """
 
-# ╔═╡ 7b933738-1750-4a88-ba7e-b7e33d4cf6d0
-@time dens2, LHM, LCV, LSCV = DIVAnd.DIVAnd_heatmap(maskbathy, (pm,pn), (xi,yi), 
-    (total_count_coordinates.decimalLongitude, total_count_coordinates.decimalLatitude), 
-    ones(length(total_count_coordinates.decimalLatitude)), 5., nmax=100000)
+# ╔═╡ 7c6ba581-2753-4dec-b709-b25d4256770b
+begin 
+	len = 5.
+	epsilon2 = 10.
+end
 
 # ╔═╡ f55d9c0d-6096-46ec-a5f2-45ad6ba9014c
-fi, s = DIVAndrun(maskbathy, (pm, pn), (xi, yi), (total_count_coordinates.decimalLongitude, total_count_coordinates.decimalLatitude), Float64.(total_count_coordinates.total_count), 5., 10.);
+@time fi, s = DIVAndrun(maskbathy, (pm, pn), (xi, yi), (total_count_coordinates.decimalLongitude, total_count_coordinates.decimalLatitude), Float64.(total_count_coordinates.total_count), len, epsilon2);
+
+# ╔═╡ fce94a4d-fc68-40dc-b9db-e53aa5024aec
+md"""
+### Compute error field
+This error field will be used to mask regions without measurements (hence where the error is higher).
+"""
+
+# ╔═╡ d6de90fb-c4b8-48b9-954b-0c887d8a017b
+@time cpme = DIVAnd_cpme(maskbathy, (pm, pn), (xi, yi), (total_count_coordinates.decimalLongitude, total_count_coordinates.decimalLatitude) ,Float64.(total_count_coordinates.total_count), len, epsilon2);
 
 # ╔═╡ fb517a88-0645-481c-b2bf-f4f8bf6b0530
 md"""
 ## Create the plot
+The field is masked where the relative error (as compute by the previous cell) is larger than 20%. That threshold can be modified with the slider just below.
 """
+
+# ╔═╡ d6cad1c5-a1f0-48cb-99ed-a2f1adeedf8d
+@bind maxerror Slider(0:5:100, default=20)
+
+# ╔═╡ fe334b32-af15-4154-a7d3-a9443678f176
+@info("Maximal allowed error = $(maxerror)%")
 
 # ╔═╡ 51cf2712-1094-4d25-a260-78d5571a4ee0
 if "Plot results" in plotting_options
+
+	fi2plot = copy(fi);
+	fi2plot[cpme .> maxerror /100] .= NaN
+	
 	fig4 = plt.figure(figsize=(12, 8))
     ax4 = plt.subplot(111, projection=mainproj)
     ax4.set_extent(domain)
-    pcm = ax4.pcolormesh(xi, yi, fi, transform=datacrs, zorder=3, cmap=plt.cm.hot_r)
+    pcm = ax4.pcolormesh(xi, yi, fi2plot, transform=datacrs, zorder=3, cmap=plt.cm.hot_r)
     ax4.add_feature(coast_h, lw=.4, zorder=5)
 	cb = plt.colorbar(pcm)
     
@@ -316,7 +339,7 @@ if "Plot results" in plotting_options
                       linewidth=.5, color="gray", alpha=1, linestyle="--")
     gl4.top_labels  = false
     gl4.right_labels = false
-    ax4.set_title("Gridded count of ''$(myspecies)''")
+    ax4.set_title("Gridded count of ''$(myspecies)''\nmasked where error > $(maxerror)%")
     figname4 = joinpath(datadir, "$(myspecies_)_heatmap.png")
 	plt.savefig(figname4)
 	plt.close()
@@ -1770,9 +1793,13 @@ version = "17.4.0+2"
 # ╠═fd17a810-7b10-431a-a02d-017f163ea953
 # ╠═0096fc07-8e7e-4f98-addd-e756f752db6d
 # ╟─7e1737a2-69fb-4564-852c-8ab521eec9a4
-# ╠═7b933738-1750-4a88-ba7e-b7e33d4cf6d0
+# ╠═7c6ba581-2753-4dec-b709-b25d4256770b
 # ╠═f55d9c0d-6096-46ec-a5f2-45ad6ba9014c
+# ╟─fce94a4d-fc68-40dc-b9db-e53aa5024aec
+# ╠═d6de90fb-c4b8-48b9-954b-0c887d8a017b
 # ╟─fb517a88-0645-481c-b2bf-f4f8bf6b0530
+# ╟─d6cad1c5-a1f0-48cb-99ed-a2f1adeedf8d
+# ╟─fe334b32-af15-4154-a7d3-a9443678f176
 # ╟─51cf2712-1094-4d25-a260-78d5571a4ee0
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
