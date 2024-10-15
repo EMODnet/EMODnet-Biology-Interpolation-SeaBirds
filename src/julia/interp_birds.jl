@@ -43,7 +43,8 @@ A CSV file is also written, so it can be read by other tools.
 # ╔═╡ 3684d7e2-feb8-48b3-ab05-816d56ccb8eb
 md"""
 ## Data
-The two data files have to be downloaded from [https://www.vliz.be/en/imis?module=dataset&dasid=3117](https://www.vliz.be/en/imis?module=dataset&dasid=3117) and placed in the directory `../../data`.      
+!!! info "Download the data files"
+    The two files have to be downloaded from [https://www.vliz.be/en/imis?module=dataset&dasid=3117](https://www.vliz.be/en/imis?module=dataset&dasid=3117) and placed in the directory `../../data`.      
 ⚠️ If they are stored in another directory, you need to set that value in the variable 📁 `datadir`.
 
 > Vanermen N, Stienen EWM, Fijn R, Markones N, Holdsworth N, Osypchuk A, Pinto C, Desmet P (2022): European Seabirds at Sea (ESAS). ICES, Copenhagen, Denmark. https://esas.ices.dk. https://doi.org/10.14284/601
@@ -55,7 +56,10 @@ Two files will be used for the processing:
 
 # ╔═╡ 662960fc-9a6d-4b05-ae5e-bbcd5dab05cf
 md"""
-### Cartopy configuration
+### 🌍 Cartopy configuration
+The [`cartopy`](https://scitools.org.uk/cartopy/docs/latest/) module is used to generate the maps.      
+
+👉 You can change here the coordinate reference system (CRS), using one of those defined in the [list](https://scitools.org.uk/cartopy/docs/latest/reference/projections.html).
 """
 
 # ╔═╡ 88455c82-b59a-4664-ba20-3db321f276ac
@@ -92,7 +96,7 @@ begin
 	mkpath(figdir)
 	
 	datafileevent = joinpath(datadir, "event.txt")
-	datafileoccur = joinpath(datadir, "occurrence.txt")
+	datafileoccur = joinpath(datadir, "occurrence.txt");
 end
 
 # ╔═╡ 55759843-16c0-420d-97c4-7cf85319a27b
@@ -296,7 +300,7 @@ if "Plot mask" in plotting_options
 	gl3.top_labels = false
     gl3.right_labels = false
    
-	figname3 = joinpath(datadir, "landsea_mask.png")
+	figname3 = joinpath(figdir, "landsea_mask.png")
 	plt.savefig(figname3)
 	plt.close()
 	PlutoUI.LocalResource(figname3)
@@ -356,7 +360,7 @@ if "Plot results" in plotting_options
     gl4.top_labels  = false
     gl4.right_labels = false
     ax4.set_title("Gridded count of ''$(myspecies)''\nmasked where error > $(maxerror)%")
-    figname4 = joinpath(datadir, "$(myspecies_)_heatmap.png")
+    figname4 = joinpath(figdir, "$(myspecies_)_heatmap.png")
 	plt.savefig(figname4)
 	plt.close()
 	PlutoUI.LocalResource(figname4)
@@ -413,7 +417,7 @@ if ("Plot results" in plotting_options) & (length(timeperiods) > 0)
 
 	plt.suptitle("Gridded count of ''$(myspecies)''\nmasked where error > $(maxerror)%", fontsize=24)
 	
-    figname5 = joinpath(datadir, "$(myspecies_)_heatmap_periods.png")
+    figname5 = joinpath(figdir, "$(myspecies_)_heatmap_periods.png")
 	plt.savefig(figname5)
 	plt.close()
 	PlutoUI.LocalResource(figname5)
@@ -1860,7 +1864,7 @@ version = "17.4.0+2"
 # ╟─662960fc-9a6d-4b05-ae5e-bbcd5dab05cf
 # ╠═55759843-16c0-420d-97c4-7cf85319a27b
 # ╟─88455c82-b59a-4664-ba20-3db321f276ac
-# ╠═179166ff-b949-415b-97d6-2c1d556f7421
+# ╟─179166ff-b949-415b-97d6-2c1d556f7421
 # ╟─4f2515f7-6015-497a-bbda-8649f2485590
 # ╠═3a20f6b1-2f91-46f8-a32a-920572487c08
 # ╟─e1c13b19-09cf-4f1c-a38a-cb907e69f9fc
@@ -1885,7 +1889,7 @@ version = "17.4.0+2"
 # ╠═7790b356-05c8-4272-b2d7-30aee0b702b6
 # ╟─6834561d-8901-4dbd-8524-44a52a8aeb3a
 # ╠═fd17a810-7b10-431a-a02d-017f163ea953
-# ╠═0096fc07-8e7e-4f98-addd-e756f752db6d
+# ╟─0096fc07-8e7e-4f98-addd-e756f752db6d
 # ╟─7e1737a2-69fb-4564-852c-8ab521eec9a4
 # ╠═7c6ba581-2753-4dec-b709-b25d4256770b
 # ╠═f55d9c0d-6096-46ec-a5f2-45ad6ba9014c
