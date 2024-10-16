@@ -22,10 +22,11 @@ begin
 	using DelimitedFiles, DataFrames
 	const plt = PyPlot
 	using DIVAnd
-	using PyCall	
+	# using PyCall	
 	using PlutoUI
-	mpl = pyimport("matplotlib")
-	mpl.style.use("./emodnet.mplstyle")
+	# mpl = pyimport("matplotlib")
+	# mpl.style.use("./emodnet.mplstyle")
+	usecartopy = false
 end
 
 # ╔═╡ 6e9669f7-4e5c-4d08-9c1a-51e860839d86
@@ -54,6 +55,13 @@ Two files will be used for the processing:
 2. `occurrence.txt`: it gives the count for different taxa, and relate them to the eventID read from the previous fole. 
 """
 
+# ╔═╡ 6bab6cd2-36ea-4555-84ae-f751483d3bf2
+md"""
+## Packages
+The packages will be automatically downloaded the first time the notebook is exectuted.         
+⚠️ This operation can take some tome to be completed.
+"""
+
 # ╔═╡ 662960fc-9a6d-4b05-ae5e-bbcd5dab05cf
 md"""
 ### 🌍 Cartopy configuration
@@ -67,11 +75,11 @@ md"""
 ### 👉 Switches for the plots
 #### Create plots
 !!! info "Select the plots to be created"
-	Activate the boxes below to get the results, mask and/or observations.
+	Enable/disable the plots by clicking the boxes below.
 """
 
 # ╔═╡ 179166ff-b949-415b-97d6-2c1d556f7421
-@bind plotting_options MultiCheckBox(["Plot results", "Plot mask", "Plot observations", "Plot histogram"])
+@bind plotting_options MultiCheckBox(["Plot results", "Plot mask", "Plot observations", "Plot histogram"]; default =["Plot results", "Plot mask", "Plot observations", "Plot histogram"])
 
 # ╔═╡ 4f2515f7-6015-497a-bbda-8649f2485590
 md"""
@@ -100,7 +108,9 @@ begin
 end
 
 # ╔═╡ 55759843-16c0-420d-97c4-7cf85319a27b
-begin
+if usecartopy
+	using Conda
+	Conda.add("cartopy")
 	ccrs = pyimport("cartopy.crs")
 	cfeature = pyimport("cartopy.feature")
 	datacrs = ccrs.PlateCarree();
@@ -244,14 +254,23 @@ md"""
 # ╔═╡ 594ac3a2-5487-4ea1-8414-aa1a74e7775b
 if "Plot observations" in plotting_options
 	fig2 = plt.figure(figsize=(12, 8))
-	ax2 = plt.subplot(111, projection=mainproj)
-	ax2.set_extent(domain)
-    ax2.scatter(total_count_coordinates.decimalLongitude, total_count_coordinates.decimalLatitude, s=5, c=total_count_coordinates.total_count, transform=datacrs, zorder=3, cmap=plt.cm.hot_r, vmin=0, vmax=30)
-    ax2.add_feature(coast_h, lw=.4, zorder=4)
-    gl2 = ax2.gridlines(crs=ccrs.PlateCarree(), draw_labels=true,
-                      linewidth=.5, color="gray", alpha=0.5, linestyle="--")
-    gl2.top_labels = false
-    gl2.right_labels = false
+	if usecartopy
+		ax2 = plt.subplot(111, projection=mainproj)
+		ax2.set_extent(domain)
+	    ax2.scatter(total_count_coordinates.decimalLongitude, total_count_coordinates.decimalLatitude, s=5, c=total_count_coordinates.total_count, transform=datacrs, zorder=3, cmap=plt.cm.hot_r, vmin=0, vmax=30)
+	    ax2.add_feature(coast_h, lw=.4, zorder=4)
+	    gl2 = ax2.gridlines(crs=ccrs.PlateCarree(), draw_labels=true,
+	                      linewidth=.5, color="gray", alpha=0.5, linestyle="--")
+	    gl2.top_labels = false
+	    gl2.right_labels = false
+
+	else
+		ax2 = plt.subplot(111)
+		ax2.set_xlim(domain[1], domain[2])
+		ax2.set_ylim(domain[3], domain[4])
+	    ax2.scatter(total_count_coordinates.decimalLongitude, total_count_coordinates.decimalLatitude, s=5, c=total_count_coordinates.total_count, zorder=3, cmap=plt.cm.hot_r, vmin=0, vmax=30)
+	end
+
     ax2.set_title("Observations of $(myspecies)", fontsize=20)
 	figname2 = joinpath(figdir, "observations_$(myspecies_).png")
     plt.savefig(figname2)
@@ -291,15 +310,23 @@ end
 # ╔═╡ 0096fc07-8e7e-4f98-addd-e756f752db6d
 if "Plot mask" in plotting_options
 	fig3 = plt.figure(figsize=(12, 8))
-	ax3 = plt.subplot(111, projection=mainproj)
-	ax3.set_extent(domain)
-	ax3.pcolormesh(xi, yi, maskbathy, cmap=plt.cm.binary_r, transform=datacrs)
+	if usecartopy
+		ax3 = plt.subplot(111, projection=mainproj)
+		ax3.set_extent(domain)
+		ax3.pcolormesh(xi, yi, maskbathy, cmap=plt.cm.binary_r, transform=datacrs)
 	
-	gl3 = ax3.gridlines(crs=ccrs.PlateCarree(), draw_labels=true,
-                      linewidth=.5, color="gray", alpha=0.5, linestyle="--")
-	gl3.top_labels = false
-    gl3.right_labels = false
-   
+		gl3 = ax3.gridlines(crs=ccrs.PlateCarree(), draw_labels=true,
+	                      linewidth=.5, color="gray", alpha=0.5, linestyle="--")
+		gl3.top_labels = false
+	    gl3.right_labels = false
+    else
+		ax3 = plt.subplot(111)
+		ax3.set_xlim(domain[1], domain[2])
+		ax3.set_ylim(domain[3], domain[4])
+		ax3.pcolormesh(xi, yi, maskbathy, cmap=plt.cm.binary_r)
+	end
+
+	ax3.set_title("Land-sea mask")
 	figname3 = joinpath(figdir, "landsea_mask.png")
 	plt.savefig(figname3)
 	plt.close()
@@ -349,16 +376,26 @@ if "Plot results" in plotting_options
 	fi2plot[cpme .> maxerror /100] .= NaN
 	
 	fig4 = plt.figure(figsize=(12, 8))
-    ax4 = plt.subplot(111, projection=mainproj)
-    ax4.set_extent(domain)
-    pcm = ax4.pcolormesh(xi, yi, fi2plot, transform=datacrs, zorder=3, cmap=plt.cm.hot_r)
-    ax4.add_feature(coast_h, lw=.4, zorder=5)
-	cb = plt.colorbar(pcm)
-    
-    gl4 = ax4.gridlines(crs=ccrs.PlateCarree(), draw_labels=true, zorder=5,
-                      linewidth=.5, color="gray", alpha=1, linestyle="--")
-    gl4.top_labels  = false
-    gl4.right_labels = false
+
+	if usecartopy
+		ax4 = plt.subplot(111, projection=mainproj)
+	    ax4.set_extent(domain)
+	    pcm4 = ax4.pcolormesh(xi, yi, fi2plot, transform=datacrs, zorder=3, cmap=plt.cm.hot_r)
+	    ax4.add_feature(coast_h, lw=.4, zorder=5)
+	    
+	    gl4 = ax4.gridlines(crs=ccrs.PlateCarree(), draw_labels=true, zorder=5,
+	                      linewidth=.5, color="gray", alpha=1, linestyle="--")
+	    gl4.top_labels  = false
+	    gl4.right_labels = false
+	else
+		ax4 = plt.subplot(111)
+		ax4.set_xlim(domain[1], domain[2])
+		ax4.set_ylim(domain[3], domain[4])
+		ax4.pcolormesh(xi, yi, maskbathy, cmap=plt.cm.binary_r)
+		pcm4 = ax4.pcolormesh(xi, yi, fi2plot, zorder=3, cmap=plt.cm.hot_r)
+	end
+
+	cb4 = plt.colorbar(pcm4)
     ax4.set_title("Gridded count of ''$(myspecies)''\nmasked where error > $(maxerror)%")
     figname4 = joinpath(figdir, "$(myspecies_)_heatmap.png")
 	plt.savefig(figname4)
@@ -401,20 +438,32 @@ if ("Plot results" in plotting_options) & (length(timeperiods) > 0)
 	fig5 = plt.figure(figsize=(12, 8))
 	ntimes = length(timeperiods)
 	for ii = 1:ntimes
-	    ax5 = plt.subplot(1, ntimes, ii, projection=mainproj)
-	    ax5.set_extent(domain)
-	    pcm = ax5.pcolormesh(xi, yi, fi2plotall[ii,:,:], 
-			transform=datacrs, zorder=3, cmap=plt.cm.hot_r, vmin=0, vmax=vmax)
-	    ax5.add_feature(coast_h, lw=.4, zorder=5)
-		cb = plt.colorbar(pcm, shrink=0.55)
-	    
-	    gl5 = ax5.gridlines(crs=ccrs.PlateCarree(), draw_labels=true, zorder=5,
-	                      linewidth=.5, color="gray", alpha=1, linestyle="--")
-	    gl5.top_labels  = false
-	    gl5.right_labels = false
-    	ax5.set_title("$(timeperiods[ii][1]) - $(timeperiods[ii][2])")
+
+		if usecartopy
+		    ax5 = plt.subplot(1, ntimes, ii, projection=mainproj)
+		    ax5.set_extent(domain)
+		    pcm = ax5.pcolormesh(xi, yi, fi2plotall[ii,:,:], 
+				transform=datacrs, zorder=3, cmap=plt.cm.hot_r, vmin=0, vmax=vmax)
+		    ax5.add_feature(coast_h, lw=.4, zorder=5)
+			cb = plt.colorbar(pcm, shrink=0.55)
+		    
+		    gl5 = ax5.gridlines(crs=ccrs.PlateCarree(), draw_labels=true, zorder=5,
+		                      linewidth=.5, color="gray", alpha=1, linestyle="--")
+		    gl5.top_labels  = false
+		    gl5.right_labels = false
+		else
+			ax5 = plt.subplot(1, ntimes, ii)
+			ax5.set_xlim(domain[1], domain[2])
+			ax5.set_ylim(domain[3], domain[4])
+			ax5.pcolormesh(xi, yi, maskbathy, cmap=plt.cm.binary_r)
+			pcm = ax5.pcolormesh(xi, yi, fi2plotall[ii,:,:], 
+				zorder=3, cmap=plt.cm.hot_r, vmin=0, vmax=vmax)
+			cb = plt.colorbar(pcm, shrink=0.55)
+		end
+		ax5.set_title("$(timeperiods[ii][1]) - $(timeperiods[ii][2])")
 	end
 
+	
 	plt.suptitle("Gridded count of ''$(myspecies)''\nmasked where error > $(maxerror)%", fontsize=24)
 	
     figname5 = joinpath(figdir, "$(myspecies_)_heatmap_periods.png")
@@ -427,22 +476,22 @@ end
 PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
+Conda = "8f4d0f93-b110-5947-807f-2305c1781a2d"
 DIVAnd = "efc8151c-67de-5a8f-9a35-d8f54746ae9d"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
-PyCall = "438e738f-606a-5dbb-bf0a-cddfbfd45ab0"
 PyPlot = "d330b81b-6aea-500a-939a-2ce795aea3ee"
 
 [compat]
 CSV = "~0.10.14"
+Conda = "~1.10.2"
 DIVAnd = "~2.7.11"
 DataFrames = "~1.6.1"
 DelimitedFiles = "~1.9.1"
 PlutoUI = "~0.7.50"
-PyCall = "~1.96.4"
-PyPlot = "~2.11.2"
+PyPlot = "~2.11.5"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -451,7 +500,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.11.0"
 manifest_format = "2.0"
-project_hash = "eb13356126a8bb5f903824f0e1d69cd8467d687e"
+project_hash = "16fb92acffe8f3a6d4721d7ab6fb39683ce26095"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "eea5d80188827b35333801ef97a40c2ed653b081"
@@ -1860,6 +1909,7 @@ version = "17.4.0+2"
 # ╔═╡ Cell order:
 # ╟─6e9669f7-4e5c-4d08-9c1a-51e860839d86
 # ╟─3684d7e2-feb8-48b3-ab05-816d56ccb8eb
+# ╟─6bab6cd2-36ea-4555-84ae-f751483d3bf2
 # ╠═4f3afffe-3231-11ef-0aea-8b6c089d68a1
 # ╟─662960fc-9a6d-4b05-ae5e-bbcd5dab05cf
 # ╠═55759843-16c0-420d-97c4-7cf85319a27b
@@ -1898,9 +1948,9 @@ version = "17.4.0+2"
 # ╟─fb517a88-0645-481c-b2bf-f4f8bf6b0530
 # ╟─d6cad1c5-a1f0-48cb-99ed-a2f1adeedf8d
 # ╠═fe334b32-af15-4154-a7d3-a9443678f176
-# ╟─51cf2712-1094-4d25-a260-78d5571a4ee0
+# ╠═51cf2712-1094-4d25-a260-78d5571a4ee0
 # ╟─d36d422e-999b-4a2d-a195-d1e20a69a032
 # ╟─0ad22d9b-fd54-474f-9fa8-1d45a9a9d3c1
-# ╟─0adb37ec-0b90-48cc-b79c-cf1034aa8c22
+# ╠═0adb37ec-0b90-48cc-b79c-cf1034aa8c22
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
