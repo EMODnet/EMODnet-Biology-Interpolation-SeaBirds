@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.19.47
+# v0.20.0
 
 using Markdown
 using InteractiveUtils
@@ -18,15 +18,12 @@ end
 begin
 	using CSV
 	using Plots
-	using Plots.PlotMeasures
 	using Dates
 	using DelimitedFiles, DataFrames
-	# const plt = PyPlot
 	using DIVAnd
-	# using PyCall	
-	using PlutoUI
 	using GeoMakie, CairoMakie
 	using GeoDatasets
+	using PlutoUI
 	# mpl = pyimport("matplotlib")
 	# mpl.style.use("./emodnet.mplstyle")
 	usecartopy = false
@@ -62,6 +59,7 @@ Two files will be used for the processing:
 md"""
 ## Packages
 The packages will be automatically downloaded the first time the notebook is exectuted.         
+
 ⚠️ This operation can take some tome to be completed.
 """
 
@@ -182,10 +180,10 @@ function parse_date(xx::SubString{String}, regexdate=r"\d{4}-\d{2}-\d{2}/\d{4}-\
 end
 
 # ╔═╡ a554357a-58e8-48dc-95d4-263991f4272e
-transform!(events, "eventDate" => ByRow(parse_date) => "eventDate");
-
-# ╔═╡ 76cdf3cd-80a6-4596-99f8-9501be0c1a06
-occurences_species = occurences[occurences.scientificName .== myspecies,:];
+begin
+	# transform!(events, "eventDate" => ByRow(parse_date) => "eventDate");
+	occurences_species = occurences[occurences.scientificName .== myspecies,:];
+end
 
 # ╔═╡ 8cbac282-8fc8-452d-9144-63dfbc5d9393
 function get_total_count(occurences::DataFrame)
@@ -263,14 +261,14 @@ if "Plot observations" in plotting_options
 		total_count_coordinates.decimalLatitude; color=:gray, markersize=2)
 	GeoMakie.xlims!(ax, (domain[1], domain[2]))
 	GeoMakie.ylims!(ax, (domain[3], domain[4]))
-	GeoMakie.contour!(ax, lont, latt, lsmask, color=:black)
+	GeoMakie.contourf!(ax, lont, latt, lsmask,colormap=Reverse(:binary))
 	fig
 end
 
 # ╔═╡ 5e1ca2cd-7049-42ca-9379-24f5a11ec797
 md"""
 ## Perform DIVAnd heatmap computation
-### Set domain, resolution and metrics
+### 🌐 Set domain, resolution and metrics
 """
 
 # ╔═╡ 7790b356-05c8-4272-b2d7-30aee0b702b6
@@ -296,17 +294,18 @@ begin
 	xb, yb, maskbathy = DIVAnd.load_mask(bathname, true , lonr, latr, 0.0);
 end
 
-# ╔═╡ 74e28074-1b6d-413d-aca0-2b624555d2f6
-
+# ╔═╡ 2ae84a19-413b-484b-b429-d3edd45c51c2
+md"""
+### Display bathymetry
+"""
 
 # ╔═╡ 0096fc07-8e7e-4f98-addd-e756f752db6d
 if "Plot mask" in plotting_options
 	fig2 = Figure()
-	ax2 = GeoAxis(fig[1,1], title="Land-sea mask", titlesize=20)
-	GeoMakie.contourf!(ax2, xb, yb, Float64.(maskbathy), levels=10)
-	#GeoMakie.xlims!(ax2, (domain[1], domain[2]))
-	#GeoMakie.ylims!(ax2, (domain[3], domain[4]))
-	# GeoMakie.contour!(ax2, lont, latt, lsmask, color=:black)
+	ax2 = GeoAxis(fig2[1,1], xticks=-55:20:30, yticks=10:10:80, title="Land-sea mask\nfrom GEBCO bathymetry", titlesize=20)
+	GeoMakie.contourf!(ax2, xb, yb, maskbathy, levels=[-1.,0, 1.], colormap=:binary)
+	GeoMakie.xlims!(ax2, (domain[1], domain[2]))
+	GeoMakie.ylims!(ax2, (domain[3], domain[4]))
 	fig2
 end
 
@@ -321,6 +320,12 @@ begin
 	len = 5.
 	epsilon2 = 10.
 end
+
+# ╔═╡ d6cad1c5-a1f0-48cb-99ed-a2f1adeedf8d
+# ╠═╡ disabled = true
+#=╠═╡
+@bind maxerror PlutoUI.Slider(0:5:100, default=20)
+  ╠═╡ =#
 
 # ╔═╡ f55d9c0d-6096-46ec-a5f2-45ad6ba9014c
 @time fi, s = DIVAndrun(maskbathy, (pm, pn), (xi, yi), (total_count_coordinates.decimalLongitude, total_count_coordinates.decimalLatitude), Float64.(total_count_coordinates.total_count), len, epsilon2);
@@ -340,44 +345,24 @@ md"""
 The field is masked where the relative error (as compute by the previous cell) is larger than 20%. That threshold can be modified with the slider just below.
 """
 
-# ╔═╡ d6cad1c5-a1f0-48cb-99ed-a2f1adeedf8d
-@bind maxerror Slider(0:5:100, default=20)
+# ╔═╡ dfc4ebc6-7305-4121-b6db-801d9978cee1
+@bind maxerror PlutoUI.Slider(0:5:100, default=20)
 
 # ╔═╡ fe334b32-af15-4154-a7d3-a9443678f176
 @info("Maximal allowed error = $(maxerror)%")
 
-# ╔═╡ 51cf2712-1094-4d25-a260-78d5571a4ee0
+# ╔═╡ 7b1221a8-f82c-48e4-9a5a-5bba12ca94f2
 if "Plot results" in plotting_options
 
 	fi2plot = copy(fi);
 	fi2plot[cpme .> maxerror /100] .= NaN
-	
-	fig4 = plt.figure(figsize=(12, 8))
-
-	if usecartopy
-		ax4 = plt.subplot(111, projection=mainproj)
-	    ax4.set_extent(domain)
-	    pcm4 = ax4.pcolormesh(xi, yi, fi2plot, transform=datacrs, zorder=3, cmap=plt.cm.hot_r)
-	    ax4.add_feature(coast_h, lw=.4, zorder=5)
-	    
-	    gl4 = ax4.gridlines(crs=ccrs.PlateCarree(), draw_labels=true, zorder=5,
-	                      linewidth=.5, color="gray", alpha=1, linestyle="--")
-	    gl4.top_labels  = false
-	    gl4.right_labels = false
-	else
-		ax4 = plt.subplot(111)
-		ax4.set_xlim(domain[1], domain[2])
-		ax4.set_ylim(domain[3], domain[4])
-		ax4.pcolormesh(xi, yi, maskbathy, cmap=plt.cm.binary_r)
-		pcm4 = ax4.pcolormesh(xi, yi, fi2plot, zorder=3, cmap=plt.cm.hot_r)
-	end
-
-	cb4 = plt.colorbar(pcm4)
-    ax4.set_title("Gridded count of ''$(myspecies)''\nmasked where error > $(maxerror)%")
-    figname4 = joinpath(figdir, "$(myspecies_)_heatmap.png")
-	plt.savefig(figname4)
-	plt.close()
-	PlutoUI.LocalResource(figname4)
+	fig3 = Figure()
+	ax3 = GeoAxis(fig3[1,1], xticks=-55:20:30, yticks=10:10:80, title="Gridded count of ''$(myspecies)''\nmasked where error > $(maxerror)%", titlesize=20)
+	GeoMakie.contourf!(ax3, xb, yb, maskbathy, levels=[-1.,0, 1.], colormap=:binary)
+	GeoMakie.contourf!(ax3, lonr, latr, Float64.(fi2plot), colormap="RdYlBu_5")
+	GeoMakie.xlims!(ax3, (domain[1], domain[2]))
+	GeoMakie.ylims!(ax3, (domain[3], domain[4]))
+	fig3
 end
 
 # ╔═╡ d36d422e-999b-4a2d-a195-d1e20a69a032
@@ -412,41 +397,20 @@ if ("Plot results" in plotting_options) & (length(timeperiods) > 0)
 	fi2plotall[error_periods .> maxerror /100] .= NaN
 	vmax = maximum(filter(!isnan, fi2plotall));
 	@info(vmax)
-	fig5 = plt.figure(figsize=(12, 8))
+
+	fig4 = Figure()
 	ntimes = length(timeperiods)
 	for ii = 1:ntimes
 
-		if usecartopy
-		    ax5 = plt.subplot(1, ntimes, ii, projection=mainproj)
-		    ax5.set_extent(domain)
-		    pcm = ax5.pcolormesh(xi, yi, fi2plotall[ii,:,:], 
-				transform=datacrs, zorder=3, cmap=plt.cm.hot_r, vmin=0, vmax=vmax)
-		    ax5.add_feature(coast_h, lw=.4, zorder=5)
-			cb = plt.colorbar(pcm, shrink=0.55)
-		    
-		    gl5 = ax5.gridlines(crs=ccrs.PlateCarree(), draw_labels=true, zorder=5,
-		                      linewidth=.5, color="gray", alpha=1, linestyle="--")
-		    gl5.top_labels  = false
-		    gl5.right_labels = false
-		else
-			ax5 = plt.subplot(1, ntimes, ii)
-			ax5.set_xlim(domain[1], domain[2])
-			ax5.set_ylim(domain[3], domain[4])
-			ax5.pcolormesh(xi, yi, maskbathy, cmap=plt.cm.binary_r)
-			pcm = ax5.pcolormesh(xi, yi, fi2plotall[ii,:,:], 
-				zorder=3, cmap=plt.cm.hot_r, vmin=0, vmax=vmax)
-			cb = plt.colorbar(pcm, shrink=0.55)
-		end
-		ax5.set_title("$(timeperiods[ii][1]) - $(timeperiods[ii][2])")
+		ax4 = GeoAxis(fig4[1,ii], xticks=-55:20:30, yticks=10:10:80, title="$(timeperiods[ii][1]) - $(timeperiods[ii][2])", titlesize=20)
+		GeoMakie.contourf!(ax4, xb, yb, maskbathy, levels=[-1.,0, 1.], colormap=:binary)
+		GeoMakie.contourf!(ax4, lonr, latr, fi2plotall[ii,:,:], colormap="RdYlBu_5")
+		GeoMakie.xlims!(ax4, (domain[1], domain[2]))
+		GeoMakie.ylims!(ax4, (domain[3], domain[4]))
+
 	end
 
-	
-	plt.suptitle("Gridded count of ''$(myspecies)''\nmasked where error > $(maxerror)%", fontsize=24)
-	
-    figname5 = joinpath(figdir, "$(myspecies_)_heatmap_periods.png")
-	plt.savefig(figname5)
-	plt.close()
-	PlutoUI.LocalResource(figname5)
+	fig4
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -3179,7 +3143,6 @@ version = "1.4.1+1"
 # ╟─93bca313-249b-43d8-8603-41da2954c150
 # ╟─3bcef6d3-c956-4ea7-8576-0d291e1e82e3
 # ╠═a554357a-58e8-48dc-95d4-263991f4272e
-# ╠═76cdf3cd-80a6-4596-99f8-9501be0c1a06
 # ╟─8cbac282-8fc8-452d-9144-63dfbc5d9393
 # ╟─809d82b6-6ff6-4507-a0f7-cf98fcd21db7
 # ╟─d95f5715-90e7-4de1-b761-bb4b3916e37f
@@ -3193,17 +3156,18 @@ version = "1.4.1+1"
 # ╠═7790b356-05c8-4272-b2d7-30aee0b702b6
 # ╟─6834561d-8901-4dbd-8524-44a52a8aeb3a
 # ╠═fd17a810-7b10-431a-a02d-017f163ea953
-# ╠═74e28074-1b6d-413d-aca0-2b624555d2f6
+# ╟─2ae84a19-413b-484b-b429-d3edd45c51c2
 # ╠═0096fc07-8e7e-4f98-addd-e756f752db6d
 # ╟─7e1737a2-69fb-4564-852c-8ab521eec9a4
 # ╠═7c6ba581-2753-4dec-b709-b25d4256770b
+# ╟─d6cad1c5-a1f0-48cb-99ed-a2f1adeedf8d
 # ╠═f55d9c0d-6096-46ec-a5f2-45ad6ba9014c
 # ╟─fce94a4d-fc68-40dc-b9db-e53aa5024aec
 # ╠═d6de90fb-c4b8-48b9-954b-0c887d8a017b
 # ╟─fb517a88-0645-481c-b2bf-f4f8bf6b0530
-# ╟─d6cad1c5-a1f0-48cb-99ed-a2f1adeedf8d
+# ╟─dfc4ebc6-7305-4121-b6db-801d9978cee1
 # ╠═fe334b32-af15-4154-a7d3-a9443678f176
-# ╠═51cf2712-1094-4d25-a260-78d5571a4ee0
+# ╠═7b1221a8-f82c-48e4-9a5a-5bba12ca94f2
 # ╟─d36d422e-999b-4a2d-a195-d1e20a69a032
 # ╟─0ad22d9b-fd54-474f-9fa8-1d45a9a9d3c1
 # ╠═0adb37ec-0b90-48cc-b79c-cf1034aa8c22
