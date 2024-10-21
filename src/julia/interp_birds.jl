@@ -19,14 +19,12 @@ begin
 	using CSV
 	using Plots
 	using Dates
-	using DelimitedFiles, DataFrames
+	using DelimitedFiles
+	using DataFrames
 	using DIVAnd
 	using GeoMakie, CairoMakie
 	using GeoDatasets
 	using PlutoUI
-	# mpl = pyimport("matplotlib")
-	# mpl.style.use("./emodnet.mplstyle")
-	usecartopy = false
 end
 
 # ╔═╡ 6e9669f7-4e5c-4d08-9c1a-51e860839d86
@@ -60,20 +58,7 @@ md"""
 ## Packages
 The packages will be automatically downloaded the first time the notebook is exectuted.         
 
-⚠️ This operation can take some tome to be completed.
-"""
-
-# ╔═╡ 3424b197-599b-4e63-922f-bf5a8bc5c034
-begin
-	lont, latt, lsmask = GeoDatasets.landseamask(;resolution='c',grid=5)
-end
-
-# ╔═╡ 662960fc-9a6d-4b05-ae5e-bbcd5dab05cf
-md"""
-### 🌍 Cartopy configuration
-The [`cartopy`](https://scitools.org.uk/cartopy/docs/latest/) module is used to generate the maps.      
-
-👉 You can change here the coordinate reference system (CRS), using one of those defined in the [list](https://scitools.org.uk/cartopy/docs/latest/reference/projections.html).
+⚠️ This operation can take some tome to be completed, especially if you run the notebook for the first time.
 """
 
 # ╔═╡ 88455c82-b59a-4664-ba20-3db321f276ac
@@ -105,28 +90,19 @@ begin
 		(Dates.Date(2000, 1, 1), Dates.Date(2019, 12, 31))
 	]
 	
-	datadir = "../../data"
-	figdir = "../../figures"
-	mkpath(figdir)
-	
+	datadir = "../../data"	
 	datafileevent = joinpath(datadir, "event.txt")
 	datafileoccur = joinpath(datadir, "occurrence.txt");
 end
 
-# ╔═╡ 55759843-16c0-420d-97c4-7cf85319a27b
-if usecartopy
-	using Conda
-	Conda.add("cartopy")
-	ccrs = pyimport("cartopy.crs")
-	cfeature = pyimport("cartopy.feature")
-	datacrs = ccrs.PlateCarree();
-	mainproj = ccrs.Mercator();
-	# mainproj = ccrs.TransverseMercator(32)
-	mainproj = ccrs.Mercator(central_longitude=0.5*(domain[1] + domain[2]), 
-        min_latitude=domain[3], max_latitude=domain[4])
-	coast_f = cfeature.GSHHSFeature(scale="full")
-	coast_h = cfeature.GSHHSFeature(scale="h")
-	coast_i = cfeature.GSHHSFeature(scale="i")
+# ╔═╡ e0349ab7-efd8-4469-a73e-a03662301f76
+md"""
+Load the mask for plotting
+"""
+
+# ╔═╡ 3424b197-599b-4e63-922f-bf5a8bc5c034
+begin
+	lont, latt, lsmask = GeoDatasets.landseamask(;resolution='c',grid=5)
 end
 
 # ╔═╡ e1c13b19-09cf-4f1c-a38a-cb907e69f9fc
@@ -181,7 +157,9 @@ end
 
 # ╔═╡ a554357a-58e8-48dc-95d4-263991f4272e
 begin
-	# transform!(events, "eventDate" => ByRow(parse_date) => "eventDate");
+	if !(events.eventDate[1] isa DateTime)
+		transform!(events, "eventDate" => ByRow(parse_date) => "eventDate");
+	end
 	occurences_species = occurences[occurences.scientificName .== myspecies,:];
 end
 
@@ -240,12 +218,10 @@ if "Plot histogram" in plotting_options
 	yearmin = minimum(years)
 	yearmax = maximum(years)
 	histogram(total_count_coordinates.eventDate; bins=1-yearmin+yearmax, 
-		color=:gray, label="")
+		color=:gray, label="", title="Number of events", titlelocation=:left)
 	histogram!(xlabel="Time", xrotation=0,
 		xticks=(Dates.DateTime(1980,1,1):Dates.Year(10):Dates.DateTime(2020,1,1),
-		1980:10:2020), ylabel="Number of\nevents", #yguidefontrotation=-90, 
-		dpi=300)
-	# plot!(size=(600,400))
+		1980:10:2020), dpi=300)
 end
 
 # ╔═╡ 57b4b501-fed0-4c63-8ffb-e32ceec7adf6
@@ -261,7 +237,7 @@ if "Plot observations" in plotting_options
 		total_count_coordinates.decimalLatitude; color=:gray, markersize=2)
 	GeoMakie.xlims!(ax, (domain[1], domain[2]))
 	GeoMakie.ylims!(ax, (domain[3], domain[4]))
-	GeoMakie.contourf!(ax, lont, latt, lsmask,colormap=Reverse(:binary))
+	GeoMakie.contour!(ax, lont, latt, lsmask, levels=[0.])
 	fig
 end
 
@@ -354,14 +330,18 @@ The field is masked where the relative error (as compute by the previous cell) i
 # ╔═╡ 7b1221a8-f82c-48e4-9a5a-5bba12ca94f2
 if "Plot results" in plotting_options
 
+
 	fi2plot = copy(fi);
 	fi2plot[cpme .> maxerror /100] .= NaN
+	levels = range(0, maximum(filter(!isnan, fi2plot)), length=20)
+
 	fig3 = Figure()
 	ax3 = GeoAxis(fig3[1,1], xticks=-55:20:30, yticks=10:10:80, title="Gridded count of ''$(myspecies)''\nmasked where error > $(maxerror)%", titlesize=20)
 	GeoMakie.contourf!(ax3, xb, yb, maskbathy, levels=[-1.,0, 1.], colormap=:binary)
-	GeoMakie.contourf!(ax3, lonr, latr, Float64.(fi2plot), colormap="RdYlBu_5")
+	cc = GeoMakie.contourf!(ax3, lonr, latr, fi2plot, levels=levels, colormap=Reverse("RdYlBu"))
 	GeoMakie.xlims!(ax3, (domain[1], domain[2]))
 	GeoMakie.ylims!(ax3, (domain[3], domain[4]))
+	Colorbar(fig3[1, 2], cc)
 	fig3
 end
 
@@ -391,25 +371,27 @@ begin
 end
 
 # ╔═╡ 0adb37ec-0b90-48cc-b79c-cf1034aa8c22
-if ("Plot results" in plotting_options) & (length(timeperiods) > 0) 
+if ("Plot results" in plotting_options) & (length(timeperiods) > 1) 
 
 	fi2plotall = copy(fi_periods);
 	fi2plotall[error_periods .> maxerror /100] .= NaN
 	vmax = maximum(filter(!isnan, fi2plotall));
-	@info(vmax)
+	levels2 = range(0, vmax, length=20)
+	@info("Maximal value: $(vmax)")
 
-	fig4 = Figure()
+	fig4 = Figure(size = (800, 400), legend="ok")
 	ntimes = length(timeperiods)
 	for ii = 1:ntimes
 
 		ax4 = GeoAxis(fig4[1,ii], xticks=-55:20:30, yticks=10:10:80, title="$(timeperiods[ii][1]) - $(timeperiods[ii][2])", titlesize=20)
 		GeoMakie.contourf!(ax4, xb, yb, maskbathy, levels=[-1.,0, 1.], colormap=:binary)
-		GeoMakie.contourf!(ax4, lonr, latr, fi2plotall[ii,:,:], colormap="RdYlBu_5")
+		cc = GeoMakie.contourf!(ax4, lonr, latr, fi2plotall[ii,:,:], levels=levels2, 
+		colormap=Reverse("RdYlBu"))
 		GeoMakie.xlims!(ax4, (domain[1], domain[2]))
 		GeoMakie.ylims!(ax4, (domain[3], domain[4]))
-
+		
 	end
-
+	Colorbar(fig4[1, ntimes+1], cc)
 	fig4
 end
 
@@ -418,7 +400,6 @@ PLUTO_PROJECT_TOML_CONTENTS = """
 [deps]
 CSV = "336ed68f-0bac-5ca0-87d4-7b16caf5d00b"
 CairoMakie = "13f3f980-e62b-5c42-98c6-ff1f3baf88f0"
-Conda = "8f4d0f93-b110-5947-807f-2305c1781a2d"
 DIVAnd = "efc8151c-67de-5a8f-9a35-d8f54746ae9d"
 DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
 Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
@@ -431,14 +412,13 @@ PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 [compat]
 CSV = "~0.10.14"
 CairoMakie = "~0.12.14"
-Conda = "~1.10.2"
-DIVAnd = "~2.7.11"
-DataFrames = "~1.6.1"
+DIVAnd = "~2.7.12"
+DataFrames = "~1.7.0"
 DelimitedFiles = "~1.9.1"
 GeoDatasets = "~0.1.8"
 GeoMakie = "~0.7.5"
 Plots = "~1.40.8"
-PlutoUI = "~0.7.50"
+PlutoUI = "~0.7.60"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -447,7 +427,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.11.1"
 manifest_format = "2.0"
-project_hash = "8ca608ad63e3ddeddc7e8ef0ffa74008f54825e2"
+project_hash = "3608f31677b82ffea5d5b0d2bf257080ef152a8a"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "eea5d80188827b35333801ef97a40c2ed653b081"
@@ -793,12 +773,6 @@ git-tree-sha1 = "ea32b83ca4fefa1768dc84e504cc0a94fb1ab8d1"
 uuid = "f0e56b4a-5159-44fe-b623-3e5288b988bb"
 version = "2.4.2"
 
-[[deps.Conda]]
-deps = ["Downloads", "JSON", "VersionParsing"]
-git-tree-sha1 = "b19db3927f0db4151cb86d073689f2428e524576"
-uuid = "8f4d0f93-b110-5947-807f-2305c1781a2d"
-version = "1.10.2"
-
 [[deps.ConstructionBase]]
 git-tree-sha1 = "76219f1ed5771adbb096743bff43fb5fdd4c1157"
 uuid = "187b0558-2788-49d3-abe0-74a17ed4e7c9"
@@ -850,10 +824,10 @@ uuid = "9a962f9c-6df0-11e9-0e5d-c546b8b5ee8a"
 version = "1.16.0"
 
 [[deps.DataFrames]]
-deps = ["Compat", "DataAPI", "DataStructures", "Future", "InlineStrings", "InvertedIndices", "IteratorInterfaceExtensions", "LinearAlgebra", "Markdown", "Missings", "PooledArrays", "PrecompileTools", "PrettyTables", "Printf", "REPL", "Random", "Reexport", "SentinelArrays", "SortingAlgorithms", "Statistics", "TableTraits", "Tables", "Unicode"]
-git-tree-sha1 = "04c738083f29f86e62c8afc341f0967d8717bdb8"
+deps = ["Compat", "DataAPI", "DataStructures", "Future", "InlineStrings", "InvertedIndices", "IteratorInterfaceExtensions", "LinearAlgebra", "Markdown", "Missings", "PooledArrays", "PrecompileTools", "PrettyTables", "Printf", "Random", "Reexport", "SentinelArrays", "SortingAlgorithms", "Statistics", "TableTraits", "Tables", "Unicode"]
+git-tree-sha1 = "fb61b4812c49343d7ef0b533ba982c46021938a6"
 uuid = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
-version = "1.6.1"
+version = "1.7.0"
 
 [[deps.DataStructures]]
 deps = ["Compat", "InteractiveUtils", "OrderedCollections"]
@@ -1485,9 +1459,9 @@ version = "0.21.4"
 
 [[deps.JSON3]]
 deps = ["Dates", "Mmap", "Parsers", "PrecompileTools", "StructTypes", "UUIDs"]
-git-tree-sha1 = "eb3edce0ed4fa32f75a0a11217433c31d56bd48b"
+git-tree-sha1 = "1d322381ef7b087548321d3f878cb4c9bd8f8f9b"
 uuid = "0f8b85d8-7281-11e9-16c2-39a750bddbf1"
-version = "1.14.0"
+version = "1.14.1"
 
     [deps.JSON3.extensions]
     JSON3ArrowExt = ["ArrowTypes"]
@@ -1521,9 +1495,9 @@ version = "0.6.9"
 
 [[deps.Krylov]]
 deps = ["LinearAlgebra", "Printf", "SparseArrays"]
-git-tree-sha1 = "267dad6b4b7b5d529c76d40ff48d33f7e94cb834"
+git-tree-sha1 = "71dd823bf0a5aaa8264e1143b96a0baa631f4ce0"
 uuid = "ba0b0d4f-ebba-5204-a429-3ac8c609bfb7"
-version = "0.9.6"
+version = "0.9.7"
 
 [[deps.LAME_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
@@ -2102,10 +2076,10 @@ uuid = "ccf2f8ad-2431-5c83-bf29-c5338b663b6a"
 version = "3.2.0"
 
 [[deps.PlotUtils]]
-deps = ["ColorSchemes", "Colors", "Dates", "PrecompileTools", "Printf", "Random", "Reexport", "Statistics"]
-git-tree-sha1 = "7b1a9df27f072ac4c9c7cbe5efb198489258d1f5"
+deps = ["ColorSchemes", "Colors", "Dates", "PrecompileTools", "Printf", "Random", "Reexport", "StableRNGs", "Statistics"]
+git-tree-sha1 = "650a022b2ce86c7dcfbdecf00f78afeeb20e5655"
 uuid = "995b91a9-d308-5afd-9ec6-746e21dbc043"
-version = "1.4.1"
+version = "1.4.2"
 
 [[deps.Plots]]
 deps = ["Base64", "Contour", "Dates", "Downloads", "FFMPEG", "FixedPointNumbers", "GR", "JLFzf", "JSON", "LaTeXStrings", "Latexify", "LinearAlgebra", "Measures", "NaNMath", "Pkg", "PlotThemes", "PlotUtils", "PrecompileTools", "Printf", "REPL", "Random", "RecipesBase", "RecipesPipeline", "Reexport", "RelocatableFolders", "Requires", "Scratch", "Showoff", "SparseArrays", "Statistics", "StatsBase", "TOML", "UUIDs", "UnicodeFun", "UnitfulLatexify", "Unzip"]
@@ -2527,6 +2501,12 @@ weakdeps = ["ChainRulesCore"]
     [deps.SpecialFunctions.extensions]
     SpecialFunctionsChainRulesCoreExt = "ChainRulesCore"
 
+[[deps.StableRNGs]]
+deps = ["Random"]
+git-tree-sha1 = "83e6cce8324d49dfaf9ef059227f91ed4441a8e5"
+uuid = "860ef19b-820b-49d6-a774-d7a799459cd3"
+version = "1.0.2"
+
 [[deps.StackViews]]
 deps = ["OffsetArrays"]
 git-tree-sha1 = "46e589465204cd0c08b4bd97385e4fa79a0c770c"
@@ -2645,9 +2625,9 @@ version = "7.7.0+0"
 
 [[deps.SymbolicIndexingInterface]]
 deps = ["Accessors", "ArrayInterface", "RuntimeGeneratedFunctions", "StaticArraysCore"]
-git-tree-sha1 = "b708e5c01d4aad69c148241bda3346fda1c550d2"
+git-tree-sha1 = "4bc96df5d71515b1cb86dd626915f06f4c0d46f5"
 uuid = "2efcf032-c050-4f8e-a9bb-153293bab1f5"
-version = "0.3.32"
+version = "0.3.33"
 
 [[deps.TOML]]
 deps = ["Dates"]
@@ -2767,11 +2747,6 @@ deps = ["ArrayInterface", "CPUSummary", "HostCPUFeatures", "IfElse", "LayoutPoin
 git-tree-sha1 = "e7f5b81c65eb858bed630fe006837b935518aca5"
 uuid = "3d5dd08c-fd9d-11e8-17fa-ed2836048c2f"
 version = "0.21.70"
-
-[[deps.VersionParsing]]
-git-tree-sha1 = "58d6e80b4ee071f5efd07fda82cb9fbe17200868"
-uuid = "81def892-9a0e-5fdd-b105-ffc91e053289"
-version = "1.3.0"
 
 [[deps.Vulkan_Loader_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Wayland_jll", "Xorg_libX11_jll", "Xorg_libXrandr_jll", "xkbcommon_jll"]
@@ -3078,9 +3053,9 @@ version = "1.3.7+2"
 
 [[deps.libzip_jll]]
 deps = ["Artifacts", "Bzip2_jll", "GnuTLS_jll", "JLLWrappers", "Libdl", "XZ_jll", "Zlib_jll", "Zstd_jll"]
-git-tree-sha1 = "3282b7d16ae7ac3e57ec2f3fa8fafb564d8f9f7f"
+git-tree-sha1 = "668ac0297e6bd8f4d53dfdcd3ace71f2e00f4a35"
 uuid = "337d8026-41b4-5cde-a456-74a10e5b31d1"
-version = "1.10.1+0"
+version = "1.11.1+0"
 
 [[deps.mtdev_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -3128,13 +3103,12 @@ version = "1.4.1+1"
 # ╟─3684d7e2-feb8-48b3-ab05-816d56ccb8eb
 # ╟─6bab6cd2-36ea-4555-84ae-f751483d3bf2
 # ╠═4f3afffe-3231-11ef-0aea-8b6c089d68a1
-# ╠═3424b197-599b-4e63-922f-bf5a8bc5c034
-# ╟─662960fc-9a6d-4b05-ae5e-bbcd5dab05cf
-# ╠═55759843-16c0-420d-97c4-7cf85319a27b
 # ╟─88455c82-b59a-4664-ba20-3db321f276ac
-# ╠═179166ff-b949-415b-97d6-2c1d556f7421
+# ╟─179166ff-b949-415b-97d6-2c1d556f7421
 # ╟─4f2515f7-6015-497a-bbda-8649f2485590
 # ╠═3a20f6b1-2f91-46f8-a32a-920572487c08
+# ╟─e0349ab7-efd8-4469-a73e-a03662301f76
+# ╠═3424b197-599b-4e63-922f-bf5a8bc5c034
 # ╟─e1c13b19-09cf-4f1c-a38a-cb907e69f9fc
 # ╠═6288868f-a120-43e9-addb-5eb3a8780282
 # ╟─c3ba8499-d22c-4786-84b2-680670763c6b
