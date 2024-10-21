@@ -237,7 +237,7 @@ if "Plot observations" in plotting_options
 		total_count_coordinates.decimalLatitude; color=:gray, markersize=2)
 	GeoMakie.xlims!(ax, (domain[1], domain[2]))
 	GeoMakie.ylims!(ax, (domain[3], domain[4]))
-	GeoMakie.contour!(ax, lont, latt, lsmask, levels=[0.])
+	GeoMakie.contour!(ax, lont, latt, lsmask, levels=[0.], color = :black)
 	fig
 end
 
