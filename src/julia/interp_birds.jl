@@ -25,6 +25,7 @@ begin
 	using GeoMakie, CairoMakie
 	using GeoDatasets
 	using PlutoUI
+	using ZipFile
 end
 
 # ╔═╡ 6e9669f7-4e5c-4d08-9c1a-51e860839d86
@@ -39,11 +40,19 @@ A CSV file is also written, so it can be read by other tools.
 ⁽¹⁾ We know that those are not sea birds but that's only for decoration.
 """
 
+# ╔═╡ 6bab6cd2-36ea-4555-84ae-f751483d3bf2
+md"""
+## Packages
+The packages will be automatically downloaded the first time the notebook is exectuted.         
+
+⚠️ This operation can take some tome to be completed, especially if you run the notebook for the first time.
+"""
+
 # ╔═╡ 3684d7e2-feb8-48b3-ab05-816d56ccb8eb
 md"""
-## Data
+## Data download
 !!! info "Download the data files"
-    The two files have to be downloaded from [https://www.vliz.be/en/imis?module=dataset&dasid=3117](https://www.vliz.be/en/imis?module=dataset&dasid=3117) and placed in the directory `../../data`.      
+    The will be automatically downloaded from [https://www.vliz.be/en/imis?module=dataset&dasid=3117](https://www.vliz.be/en/imis?module=dataset&dasid=3117) and placed in the directory `../../data`.      
 ⚠️ If they are stored in another directory, you need to set that value in the variable 📁 `datadir`.
 
 > Vanermen N, Stienen EWM, Fijn R, Markones N, Holdsworth N, Osypchuk A, Pinto C, Desmet P (2022): European Seabirds at Sea (ESAS). ICES, Copenhagen, Denmark. https://esas.ices.dk. https://doi.org/10.14284/601
@@ -53,13 +62,35 @@ Two files will be used for the processing:
 2. `occurrence.txt`: it gives the count for different taxa, and relate them to the eventID read from the previous fole. 
 """
 
-# ╔═╡ 6bab6cd2-36ea-4555-84ae-f751483d3bf2
-md"""
-## Packages
-The packages will be automatically downloaded the first time the notebook is exectuted.         
+# ╔═╡ 523aa60d-3d44-48a6-b192-0682eb3cd9f6
+begin 
 
-⚠️ This operation can take some tome to be completed, especially if you run the notebook for the first time.
-"""
+	datadir = "../../data/"
+	mkpath(datadir)
+	
+	const dataurl = "https://mda.vliz.be/download.php?file=VLIZ_00000772_6442460347bb7759971746"
+	datazip = joinpath(datadir, "birds_data.zip")
+	if isfile(datazip)
+		@info("Data already downloaded")
+	else
+		@info("Downloading data")
+		download(dataurl, datazip)
+	end
+
+	@info("Extracting data archive")
+	r = ZipFile.Reader(datazip);
+	for f in r.files
+		if isfile(joinpath(datadir, f.name))
+			@info("File $(f.name) already extracted")
+		else
+			@info("Extracting file $(f.name)")
+		 	open(joinpath(datadir, f.name), "w") do df
+       	 		write(df, read(f, String));
+    		end
+		end
+	end
+	close(r)
+end
 
 # ╔═╡ 88455c82-b59a-4664-ba20-3db321f276ac
 md"""
@@ -90,7 +121,6 @@ begin
 		(Dates.Date(2000, 1, 1), Dates.Date(2019, 12, 31))
 	]
 	
-	datadir = "../../data"	
 	datafileevent = joinpath(datadir, "event.txt")
 	datafileoccur = joinpath(datadir, "occurrence.txt");
 end
@@ -119,7 +149,7 @@ end
 
 # ╔═╡ c3ba8499-d22c-4786-84b2-680670763c6b
 md"""
-!!! info "Select the species of interest"
+!!! info "👉 Select the species of interest"
 
 	Use the menu to select the species that will be gridded.
 """
@@ -408,6 +438,7 @@ GeoDatasets = "ddc7317b-88db-5cb5-a849-8449e5df04f9"
 GeoMakie = "db073c08-6b98-4ee5-b6a4-5efafb3259c6"
 Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
+ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 
 [compat]
 CSV = "~0.10.14"
@@ -419,6 +450,7 @@ GeoDatasets = "~0.1.8"
 GeoMakie = "~0.7.5"
 Plots = "~1.40.8"
 PlutoUI = "~0.7.60"
+ZipFile = "~0.10.1"
 """
 
 # ╔═╡ 00000000-0000-0000-0000-000000000002
@@ -427,7 +459,7 @@ PLUTO_MANIFEST_TOML_CONTENTS = """
 
 julia_version = "1.11.1"
 manifest_format = "2.0"
-project_hash = "3608f31677b82ffea5d5b0d2bf257080ef152a8a"
+project_hash = "5c59ca86aa1906cae2b8cd50da5ca9eef2330fb3"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "eea5d80188827b35333801ef97a40c2ed653b081"
@@ -3100,9 +3132,10 @@ version = "1.4.1+1"
 
 # ╔═╡ Cell order:
 # ╟─6e9669f7-4e5c-4d08-9c1a-51e860839d86
-# ╟─3684d7e2-feb8-48b3-ab05-816d56ccb8eb
 # ╟─6bab6cd2-36ea-4555-84ae-f751483d3bf2
 # ╠═4f3afffe-3231-11ef-0aea-8b6c089d68a1
+# ╟─3684d7e2-feb8-48b3-ab05-816d56ccb8eb
+# ╠═523aa60d-3d44-48a6-b192-0682eb3cd9f6
 # ╟─88455c82-b59a-4664-ba20-3db321f276ac
 # ╟─179166ff-b949-415b-97d6-2c1d556f7421
 # ╟─4f2515f7-6015-497a-bbda-8649f2485590
@@ -3123,15 +3156,15 @@ version = "1.4.1+1"
 # ╟─eb9cc268-7ec4-456e-b155-ec82a1c07823
 # ╠═df2aa0a0-c2a7-49c1-affa-06173e35e3db
 # ╟─d9873211-17ea-4e06-b8fb-33f563d4bd17
-# ╠═05199f30-bbce-44e1-8c8c-4aa023ee4c02
+# ╟─05199f30-bbce-44e1-8c8c-4aa023ee4c02
 # ╟─57b4b501-fed0-4c63-8ffb-e32ceec7adf6
-# ╠═fe352f2f-9bef-4072-ad02-abac04247e34
+# ╟─fe352f2f-9bef-4072-ad02-abac04247e34
 # ╟─5e1ca2cd-7049-42ca-9379-24f5a11ec797
 # ╠═7790b356-05c8-4272-b2d7-30aee0b702b6
 # ╟─6834561d-8901-4dbd-8524-44a52a8aeb3a
 # ╠═fd17a810-7b10-431a-a02d-017f163ea953
 # ╟─2ae84a19-413b-484b-b429-d3edd45c51c2
-# ╠═0096fc07-8e7e-4f98-addd-e756f752db6d
+# ╟─0096fc07-8e7e-4f98-addd-e756f752db6d
 # ╟─7e1737a2-69fb-4564-852c-8ab521eec9a4
 # ╠═7c6ba581-2753-4dec-b709-b25d4256770b
 # ╟─d6cad1c5-a1f0-48cb-99ed-a2f1adeedf8d
@@ -3141,9 +3174,9 @@ version = "1.4.1+1"
 # ╟─fb517a88-0645-481c-b2bf-f4f8bf6b0530
 # ╟─dfc4ebc6-7305-4121-b6db-801d9978cee1
 # ╠═fe334b32-af15-4154-a7d3-a9443678f176
-# ╠═7b1221a8-f82c-48e4-9a5a-5bba12ca94f2
+# ╟─7b1221a8-f82c-48e4-9a5a-5bba12ca94f2
 # ╟─d36d422e-999b-4a2d-a195-d1e20a69a032
 # ╟─0ad22d9b-fd54-474f-9fa8-1d45a9a9d3c1
-# ╠═0adb37ec-0b90-48cc-b79c-cf1034aa8c22
+# ╟─0adb37ec-0b90-48cc-b79c-cf1034aa8c22
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
