@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.0
+# v0.19.47
 
 using Markdown
 using InteractiveUtils
@@ -42,17 +42,61 @@ A CSV file is also written, so it can be read by other tools.
 
 # ╔═╡ 6bab6cd2-36ea-4555-84ae-f751483d3bf2
 md"""
-## Packages
+## 📦📦 Packages
 The packages will be automatically downloaded the first time the notebook is exectuted.         
 
 ⚠️ This operation can take some tome to be completed, especially if you run the notebook for the first time.
 """
 
+# ╔═╡ 4f2515f7-6015-497a-bbda-8649f2485590
+md"""
+## User parameters
+You can set here:
+- the domain of interest
+- the grid spatial resolution
+- the time periods to be compared
+- the `DIVAnd` analysis parameters
+- the directory paths
+"""
+
+# ╔═╡ 3a20f6b1-2f91-46f8-a32a-920572487c08
+begin
+
+	datadir = "../../data/"
+	mkpath(datadir)
+	
+	domain = (-55, 21, 14., 72.)
+	deltalon = 0.5
+	deltalat = 0.5
+
+	# Correlation length and noise-to-signal ratio
+	len = 5.
+	epsilon2 = 10.
+
+	timeperiods = [
+		(Dates.Date(1980, 1, 1), Dates.Date(1999, 12, 31)), 
+		(Dates.Date(2000, 1, 1), Dates.Date(2019, 12, 31))
+	]
+	
+	datafileevent = joinpath(datadir, "event.txt")
+	datafileoccur = joinpath(datadir, "occurrence.txt");
+end
+
+# ╔═╡ 88455c82-b59a-4664-ba20-3db321f276ac
+md"""
+### 👉 Switches for the plots
+!!! info "Select the plots to be created"
+	Enable/disable the plots by clicking the boxes below.
+"""
+
+# ╔═╡ 179166ff-b949-415b-97d6-2c1d556f7421
+@bind plotting_options MultiCheckBox(["Plot results", "Plot mask", "Plot observations", "Plot histogram"]; default =["Plot results", "Plot mask", "Plot observations", "Plot histogram"])
+
 # ╔═╡ 3684d7e2-feb8-48b3-ab05-816d56ccb8eb
 md"""
 ## Data download
 !!! info "Download the data files"
-    The will be automatically downloaded from [https://www.vliz.be/en/imis?module=dataset&dasid=3117](https://www.vliz.be/en/imis?module=dataset&dasid=3117) and placed in the directory `../../data`.      
+    They will be automatically downloaded from [https://www.vliz.be/en/imis?module=dataset&dasid=3117](https://www.vliz.be/en/imis?module=dataset&dasid=3117) and placed in the directory `../../data`.      
 ⚠️ If they are stored in another directory, you need to set that value in the variable 📁 `datadir`.
 
 > Vanermen N, Stienen EWM, Fijn R, Markones N, Holdsworth N, Osypchuk A, Pinto C, Desmet P (2022): European Seabirds at Sea (ESAS). ICES, Copenhagen, Denmark. https://esas.ices.dk. https://doi.org/10.14284/601
@@ -64,9 +108,6 @@ Two files will be used for the processing:
 
 # ╔═╡ 523aa60d-3d44-48a6-b192-0682eb3cd9f6
 begin 
-
-	datadir = "../../data/"
-	mkpath(datadir)
 	
 	const dataurl = "https://mda.vliz.be/download.php?file=VLIZ_00000772_6442460347bb7759971746"
 	datazip = joinpath(datadir, "birds_data.zip")
@@ -90,39 +131,6 @@ begin
 		end
 	end
 	close(r)
-end
-
-# ╔═╡ 88455c82-b59a-4664-ba20-3db321f276ac
-md"""
-### 👉 Switches for the plots
-#### Create plots
-!!! info "Select the plots to be created"
-	Enable/disable the plots by clicking the boxes below.
-"""
-
-# ╔═╡ 179166ff-b949-415b-97d6-2c1d556f7421
-@bind plotting_options MultiCheckBox(["Plot results", "Plot mask", "Plot observations", "Plot histogram"]; default =["Plot results", "Plot mask", "Plot observations", "Plot histogram"])
-
-# ╔═╡ 4f2515f7-6015-497a-bbda-8649f2485590
-md"""
-## User parameters
-You can set here:
-- the domain of interest
-- the time periods to be compared
-- the directory paths
-"""
-
-# ╔═╡ 3a20f6b1-2f91-46f8-a32a-920572487c08
-begin
-	domain = (-55, 21, 14., 72.)
-
-	timeperiods = [
-		(Dates.Date(1980, 1, 1), Dates.Date(1999, 12, 31)), 
-		(Dates.Date(2000, 1, 1), Dates.Date(2019, 12, 31))
-	]
-	
-	datafileevent = joinpath(datadir, "event.txt")
-	datafileoccur = joinpath(datadir, "occurrence.txt");
 end
 
 # ╔═╡ e0349ab7-efd8-4469-a73e-a03662301f76
@@ -239,7 +247,10 @@ end
 
 # ╔═╡ d9873211-17ea-4e06-b8fb-33f563d4bd17
 md"""
+## Create some plots
+Use the check boxes in the **User parameters** sections to turn on/off the creation of figures.
 ### 📊 Time histogram of the observations
+Showing the number of events per year.
 """
 
 # ╔═╡ 05199f30-bbce-44e1-8c8c-4aa023ee4c02
@@ -256,7 +267,7 @@ end
 
 # ╔═╡ 57b4b501-fed0-4c63-8ffb-e32ceec7adf6
 md"""
-### Location of all the observations
+### 🌐 Location of all the observations
 """
 
 # ╔═╡ fe352f2f-9bef-4072-ad02-abac04247e34
@@ -274,13 +285,12 @@ end
 # ╔═╡ 5e1ca2cd-7049-42ca-9379-24f5a11ec797
 md"""
 ## Perform DIVAnd heatmap computation
-### 🌐 Set domain, resolution and metrics
+### Compute grid from the user parameters
 """
 
 # ╔═╡ 7790b356-05c8-4272-b2d7-30aee0b702b6
 begin
-	deltalon = 0.5
-	deltalat = 0.5
+
 	lonr = domain[1]:deltalon:domain[2]
 	latr = domain[3]:deltalat:domain[4]
 	
@@ -302,7 +312,7 @@ end
 
 # ╔═╡ 2ae84a19-413b-484b-b429-d3edd45c51c2
 md"""
-### Display bathymetry
+#### Display bathymetry
 """
 
 # ╔═╡ 0096fc07-8e7e-4f98-addd-e756f752db6d
@@ -317,15 +327,8 @@ end
 
 # ╔═╡ 7e1737a2-69fb-4564-852c-8ab521eec9a4
 md"""
-## Perform computation
-### Set the values of the analysis parameters
+### Perform computation
 """
-
-# ╔═╡ 7c6ba581-2753-4dec-b709-b25d4256770b
-begin 
-	len = 5.
-	epsilon2 = 10.
-end
 
 # ╔═╡ d6cad1c5-a1f0-48cb-99ed-a2f1adeedf8d
 # ╠═╡ disabled = true
@@ -3134,18 +3137,18 @@ version = "1.4.1+1"
 # ╟─6e9669f7-4e5c-4d08-9c1a-51e860839d86
 # ╟─6bab6cd2-36ea-4555-84ae-f751483d3bf2
 # ╠═4f3afffe-3231-11ef-0aea-8b6c089d68a1
-# ╟─3684d7e2-feb8-48b3-ab05-816d56ccb8eb
-# ╠═523aa60d-3d44-48a6-b192-0682eb3cd9f6
-# ╟─88455c82-b59a-4664-ba20-3db321f276ac
-# ╟─179166ff-b949-415b-97d6-2c1d556f7421
 # ╟─4f2515f7-6015-497a-bbda-8649f2485590
 # ╠═3a20f6b1-2f91-46f8-a32a-920572487c08
+# ╟─88455c82-b59a-4664-ba20-3db321f276ac
+# ╟─179166ff-b949-415b-97d6-2c1d556f7421
+# ╟─3684d7e2-feb8-48b3-ab05-816d56ccb8eb
+# ╠═523aa60d-3d44-48a6-b192-0682eb3cd9f6
 # ╟─e0349ab7-efd8-4469-a73e-a03662301f76
 # ╠═3424b197-599b-4e63-922f-bf5a8bc5c034
 # ╟─e1c13b19-09cf-4f1c-a38a-cb907e69f9fc
 # ╠═6288868f-a120-43e9-addb-5eb3a8780282
 # ╟─c3ba8499-d22c-4786-84b2-680670763c6b
-# ╠═929609ab-709e-4b67-8135-e4815be42bca
+# ╟─929609ab-709e-4b67-8135-e4815be42bca
 # ╟─86fc4f9f-7741-4190-8604-fa0631347d70
 # ╟─93bca313-249b-43d8-8603-41da2954c150
 # ╟─3bcef6d3-c956-4ea7-8576-0d291e1e82e3
@@ -3166,7 +3169,6 @@ version = "1.4.1+1"
 # ╟─2ae84a19-413b-484b-b429-d3edd45c51c2
 # ╟─0096fc07-8e7e-4f98-addd-e756f752db6d
 # ╟─7e1737a2-69fb-4564-852c-8ab521eec9a4
-# ╠═7c6ba581-2753-4dec-b709-b25d4256770b
 # ╟─d6cad1c5-a1f0-48cb-99ed-a2f1adeedf8d
 # ╠═f55d9c0d-6096-46ec-a5f2-45ad6ba9014c
 # ╟─fce94a4d-fc68-40dc-b9db-e53aa5024aec
