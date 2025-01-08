@@ -1,28 +1,29 @@
 ### A Pluto.jl notebook ###
-# v0.19.47
+# v0.20.0
 
 using Markdown
 using InteractiveUtils
 
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
+    #! format: off
     quote
         local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
         local el = $(esc(element))
         global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
         el
     end
+    #! format: on
 end
 
 # ╔═╡ 4f3afffe-3231-11ef-0aea-8b6c089d68a1
 begin
 	using CSV
-	using Plots
 	using Dates
 	using DelimitedFiles
 	using DataFrames
 	using DIVAnd
-	using GeoMakie, CairoMakie
+	using Makie, GeoMakie, CairoMakie
 	using GeoDatasets
 	using PlutoUI
 	using ZipFile
@@ -133,6 +134,39 @@ begin
 	close(r)
 end
 
+# ╔═╡ 88455c82-b59a-4664-ba20-3db321f276ac
+md"""
+### 👉 Switches for the plots
+#### Create plots
+!!! info "Select the plots to be created"
+	Enable/disable the plots by clicking the boxes below.
+"""
+
+# ╔═╡ 179166ff-b949-415b-97d6-2c1d556f7421
+@bind plotting_options MultiCheckBox(["Plot results", "Plot mask", "Plot observations", "Plot histogram"]; default =["Plot results", "Plot mask", "Plot observations", "Plot histogram"])
+
+# ╔═╡ 4f2515f7-6015-497a-bbda-8649f2485590
+md"""
+## User parameters
+You can set here:
+- the domain of interest
+- the time periods to be compared
+- the directory paths
+"""
+
+# ╔═╡ 3a20f6b1-2f91-46f8-a32a-920572487c08
+begin
+	domain = (-55, 21, 14., 72.)
+
+	timeperiods = [
+		(Dates.Date(1980, 1, 1), Dates.Date(1999, 12, 31)), 
+		(Dates.Date(2000, 1, 1), Dates.Date(2019, 12, 31))
+	]
+	
+	datafileevent = joinpath(datadir, "event.txt")
+	datafileoccur = joinpath(datadir, "occurrence.txt");
+end
+
 # ╔═╡ e0349ab7-efd8-4469-a73e-a03662301f76
 md"""
 Load the mask for plotting
@@ -164,7 +198,7 @@ md"""
 
 
 # ╔═╡ 929609ab-709e-4b67-8135-e4815be42bca
-@bind myspecies Select(unique(occurences.scientificName))
+@bind myspecies Select(sort(unique(occurences.scientificName)))
 
 # ╔═╡ 86fc4f9f-7741-4190-8604-fa0631347d70
 md"""
@@ -230,6 +264,7 @@ begin
 	
 	total_count_coordinates = innerjoin(total_count_df, events, on = :eventID);
 	select!(total_count_coordinates, :decimalLongitude, :decimalLatitude, :eventDate, :total_count);
+	npoints = size(total_count_coordinates)[1]
 end
 
 # ╔═╡ eb9cc268-7ec4-456e-b155-ec82a1c07823
@@ -258,11 +293,11 @@ if "Plot histogram" in plotting_options
 	years = Dates.year.(total_count_coordinates.eventDate)
 	yearmin = minimum(years)
 	yearmax = maximum(years)
-	histogram(total_count_coordinates.eventDate; bins=1-yearmin+yearmax, 
-		color=:gray, label="", title="Number of events", titlelocation=:left)
-	histogram!(xlabel="Time", xrotation=0,
-		xticks=(Dates.DateTime(1980,1,1):Dates.Year(10):Dates.DateTime(2020,1,1),
-		1980:10:2020), dpi=300)
+	fighist = Figure()
+	axhist = Axis(fighist[1,1], title="Number of events per year\n($(yearmin)-$(yearmax))", xlabel="Time")
+	hist!(axhist, years; bins = yearmax - yearmin, color=:gray)
+	hidespines!(axhist, :t, :r) # only top and right
+	fighist
 end
 
 # ╔═╡ 57b4b501-fed0-4c63-8ffb-e32ceec7adf6
@@ -274,11 +309,11 @@ md"""
 if "Plot observations" in plotting_options
 	fig = Figure()
 	ax = GeoAxis(fig[1,1], xticks=-55:20:30, yticks=10:10:80, title="Observations of $(myspecies)", titlesize=20)
-	GeoMakie.plot!(total_count_coordinates.decimalLongitude,
-		total_count_coordinates.decimalLatitude; color=:gray, markersize=2)
-	GeoMakie.xlims!(ax, (domain[1], domain[2]))
-	GeoMakie.ylims!(ax, (domain[3], domain[4]))
-	GeoMakie.contour!(ax, lont, latt, lsmask, levels=[0.], color = :black)
+	scatter!(ax, total_count_coordinates.decimalLongitude,
+		total_count_coordinates.decimalLatitude, color=:blue, markersize=4)
+	xlims!(ax, (domain[1], domain[2]))
+	ylims!(ax, (domain[3], domain[4]))
+	contour!(ax, lont, latt, lsmask, levels=[0.], color = :black)
 	fig
 end
 
@@ -319,16 +354,23 @@ md"""
 if "Plot mask" in plotting_options
 	fig2 = Figure()
 	ax2 = GeoAxis(fig2[1,1], xticks=-55:20:30, yticks=10:10:80, title="Land-sea mask\nfrom GEBCO bathymetry", titlesize=20)
-	GeoMakie.contourf!(ax2, xb, yb, maskbathy, levels=[-1.,0, 1.], colormap=:binary)
-	GeoMakie.xlims!(ax2, (domain[1], domain[2]))
-	GeoMakie.ylims!(ax2, (domain[3], domain[4]))
+	contourf!(ax2, xb, yb, maskbathy, levels=[-1.,0, 1.], colormap=:binary)
+	xlims!(ax2, (domain[1], domain[2]))
+	ylims!(ax2, (domain[3], domain[4]))
 	fig2
 end
 
 # ╔═╡ 7e1737a2-69fb-4564-852c-8ab521eec9a4
 md"""
-### Perform computation
+## Perform computation
+### Set the values of the analysis parameters
 """
+
+# ╔═╡ 7c6ba581-2753-4dec-b709-b25d4256770b
+begin 
+	len = 5.
+	epsilon2 = 10.
+end
 
 # ╔═╡ d6cad1c5-a1f0-48cb-99ed-a2f1adeedf8d
 # ╠═╡ disabled = true
@@ -337,7 +379,11 @@ md"""
   ╠═╡ =#
 
 # ╔═╡ f55d9c0d-6096-46ec-a5f2-45ad6ba9014c
-@time fi, s = DIVAndrun(maskbathy, (pm, pn), (xi, yi), (total_count_coordinates.decimalLongitude, total_count_coordinates.decimalLatitude), Float64.(total_count_coordinates.total_count), len, epsilon2);
+if npoints > 5
+	fi, s = DIVAndrun(maskbathy, (pm, pn), (xi, yi), (total_count_coordinates.decimalLongitude, total_count_coordinates.decimalLatitude), Float64.(total_count_coordinates.total_count), len, epsilon2);
+else
+	@info("Not enough observations to perform interpolation")
+end
 
 # ╔═╡ fce94a4d-fc68-40dc-b9db-e53aa5024aec
 md"""
@@ -346,7 +392,11 @@ This error field will be used to mask regions without measurements (hence where 
 """
 
 # ╔═╡ d6de90fb-c4b8-48b9-954b-0c887d8a017b
-@time cpme = DIVAnd_cpme(maskbathy, (pm, pn), (xi, yi), (total_count_coordinates.decimalLongitude, total_count_coordinates.decimalLatitude) ,Float64.(total_count_coordinates.total_count), len, epsilon2);
+if npoints > 5
+	cpme = DIVAnd_cpme(maskbathy, (pm, pn), (xi, yi), (total_count_coordinates.decimalLongitude, total_count_coordinates.decimalLatitude) ,Float64.(total_count_coordinates.total_count), len, epsilon2);
+else
+	@info("Not enough observations to perform interpolation")
+end
 
 # ╔═╡ fb517a88-0645-481c-b2bf-f4f8bf6b0530
 md"""
@@ -361,26 +411,28 @@ The field is masked where the relative error (as compute by the previous cell) i
 @info("Maximal allowed error = $(maxerror)%")
 
 # ╔═╡ 7b1221a8-f82c-48e4-9a5a-5bba12ca94f2
-if "Plot results" in plotting_options
-
+if ("Plot results" in plotting_options) & (npoints > 5)
 
 	fi2plot = copy(fi);
 	fi2plot[cpme .> maxerror /100] .= NaN
 	levels = range(0, maximum(filter(!isnan, fi2plot)), length=20)
 
 	fig3 = Figure()
-	ax3 = GeoAxis(fig3[1,1], xticks=-55:20:30, yticks=10:10:80, title="Gridded count of ''$(myspecies)''\nmasked where error > $(maxerror)%", titlesize=20)
-	GeoMakie.contourf!(ax3, xb, yb, maskbathy, levels=[-1.,0, 1.], colormap=:binary)
-	cc = GeoMakie.contourf!(ax3, lonr, latr, fi2plot, levels=levels, colormap=Reverse("RdYlBu"))
-	GeoMakie.xlims!(ax3, (domain[1], domain[2]))
-	GeoMakie.ylims!(ax3, (domain[3], domain[4]))
+	ax3 = GeoAxis(fig3[1,1], xticks=-55:20:30, yticks=10:10:80, title="Gridded count of ''$(myspecies)''\nmasked where relative error < $(maxerror)%", titlesize=20)
+	contourf!(ax3, xb, yb, maskbathy, levels=[-1.,0, 1.], colormap=:binary)
+	cc = contourf!(ax3, lonr, latr, fi2plot, levels=levels, colormap=Reverse("RdYlBu"))
+	xlims!(ax3, (domain[1], domain[2]))
+	ylims!(ax3, (domain[3], domain[4]))
 	Colorbar(fig3[1, 2], cc)
 	fig3
+else
+	@info("Not enough observations to perform interpolation")
 end
 
 # ╔═╡ d36d422e-999b-4a2d-a195-d1e20a69a032
 md"""
 ### By time periods
+This allows to compare the density maps in two (or more) time periods.
 """
 
 # ╔═╡ 0ad22d9b-fd54-474f-9fa8-1d45a9a9d3c1
@@ -396,36 +448,38 @@ begin
 		@info("Working on period $(periods[1]) - $(periods[2])")
 		goodtime = findall((total_count_coordinates.eventDate .>= periods[1]) .& (total_count_coordinates.eventDate .>= periods[2]));
 	
-		@time fi_periods[iii,:,:], s = DIVAndrun(maskbathy, (pm, pn), (xi, yi), (total_count_coordinates.decimalLongitude[goodtime], total_count_coordinates.decimalLatitude[goodtime]), Float64.(total_count_coordinates.total_count[goodtime]), len, epsilon2);
+		fi_periods[iii,:,:], s = DIVAndrun(maskbathy, (pm, pn), (xi, yi), (total_count_coordinates.decimalLongitude[goodtime], total_count_coordinates.decimalLatitude[goodtime]), Float64.(total_count_coordinates.total_count[goodtime]), len, epsilon2);
 
-		@time error_periods[iii,:,:] = DIVAnd_cpme(maskbathy, (pm, pn), (xi, yi), (total_count_coordinates.decimalLongitude[goodtime], total_count_coordinates.decimalLatitude[goodtime]) ,Float64.(total_count_coordinates.total_count)[goodtime], len, epsilon2);
+		error_periods[iii,:,:] = DIVAnd_cpme(maskbathy, (pm, pn), (xi, yi), (total_count_coordinates.decimalLongitude[goodtime], total_count_coordinates.decimalLatitude[goodtime]) ,Float64.(total_count_coordinates.total_count)[goodtime], len, epsilon2);
 		
 	end
 end
 
 # ╔═╡ 0adb37ec-0b90-48cc-b79c-cf1034aa8c22
-if ("Plot results" in plotting_options) & (length(timeperiods) > 1) 
-
+if ("Plot results" in plotting_options) & (length(timeperiods) > 1) & (npoints > 5)
+ 
 	fi2plotall = copy(fi_periods);
 	fi2plotall[error_periods .> maxerror /100] .= NaN
 	vmax = maximum(filter(!isnan, fi2plotall));
 	levels2 = range(0, vmax, length=20)
 	@info("Maximal value: $(vmax)")
 
-	fig4 = Figure(size = (800, 400), legend="ok")
+	fig4 = Figure(size = (900, 400))
 	ntimes = length(timeperiods)
 	for ii = 1:ntimes
 
 		ax4 = GeoAxis(fig4[1,ii], xticks=-55:20:30, yticks=10:10:80, title="$(timeperiods[ii][1]) - $(timeperiods[ii][2])", titlesize=20)
-		GeoMakie.contourf!(ax4, xb, yb, maskbathy, levels=[-1.,0, 1.], colormap=:binary)
-		cc = GeoMakie.contourf!(ax4, lonr, latr, fi2plotall[ii,:,:], levels=levels2, 
+		contourf!(ax4, xb, yb, maskbathy, levels=[-1.,0, 1.], colormap=:binary)
+		cc = contourf!(ax4, lonr, latr, fi2plotall[ii,:,:], levels=levels2, 
 		colormap=Reverse("RdYlBu"))
-		GeoMakie.xlims!(ax4, (domain[1], domain[2]))
-		GeoMakie.ylims!(ax4, (domain[3], domain[4]))
+		xlims!(ax4, (domain[1], domain[2]))
+		ylims!(ax4, (domain[3], domain[4]))
 		
 	end
 	Colorbar(fig4[1, ntimes+1], cc)
 	fig4
+else
+	@info("Not enough observations to perform interpolation")
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -439,7 +493,7 @@ Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
 DelimitedFiles = "8bb1440f-4735-579b-a4ab-409b98df4dab"
 GeoDatasets = "ddc7317b-88db-5cb5-a849-8449e5df04f9"
 GeoMakie = "db073c08-6b98-4ee5-b6a4-5efafb3259c6"
-Plots = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
+Makie = "ee78f7c6-11fb-53f2-987a-cfe4a2b5a57a"
 PlutoUI = "7f904dfe-b85e-4ff6-b463-dae2292396a8"
 ZipFile = "a5390f91-8eb1-5f08-bee0-b1d1ffed6cea"
 
@@ -451,7 +505,7 @@ DataFrames = "~1.7.0"
 DelimitedFiles = "~1.9.1"
 GeoDatasets = "~0.1.8"
 GeoMakie = "~0.7.5"
-Plots = "~1.40.8"
+Makie = "~0.21.14"
 PlutoUI = "~0.7.60"
 ZipFile = "~0.10.1"
 """
@@ -460,9 +514,9 @@ ZipFile = "~0.10.1"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.11.1"
+julia_version = "1.11.2"
 manifest_format = "2.0"
-project_hash = "5c59ca86aa1906cae2b8cd50da5ca9eef2330fb3"
+project_hash = "687a9b3ad88970a2c914adf2426611cdf7fd1ad3"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "eea5d80188827b35333801ef97a40c2ed653b081"
@@ -880,12 +934,6 @@ deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 version = "1.11.0"
 
-[[deps.Dbus_jll]]
-deps = ["Artifacts", "Expat_jll", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "fc173b380865f70627d7dd1190dc2fce6cc105af"
-uuid = "ee1fde0b-3d02-5ea6-8484-8dfef6360eab"
-version = "1.14.10+0"
-
 [[deps.DelaunayTriangulation]]
 deps = ["AdaptivePredicates", "EnumX", "ExactPredicates", "PrecompileTools", "Random"]
 git-tree-sha1 = "668bb97ea6df5e654e6288d87d2243591fe68665"
@@ -947,12 +995,6 @@ git-tree-sha1 = "bdb1942cd4c45e3c678fd11569d5cccd80976237"
 uuid = "4e289a0a-7415-4d19-859d-a7e5c4648b56"
 version = "1.0.4"
 
-[[deps.EpollShim_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "8e9441ee83492030ace98f9789a654a6d0b1f643"
-uuid = "2702e6a9-849d-5ed8-8c21-79e8b8f9ee43"
-version = "0.0.20230411+0"
-
 [[deps.ExactPredicates]]
 deps = ["IntervalArithmetic", "Random", "StaticArrays"]
 git-tree-sha1 = "b3f2ff58735b5f024c392fde763f29b057e4b025"
@@ -992,12 +1034,6 @@ deps = ["Printf", "XML2_jll"]
 git-tree-sha1 = "380053d61bb9064d6aa4a9777413b40429c79901"
 uuid = "8f5d6c58-4d21-5cfd-889c-e3ad7ee6a615"
 version = "1.2.0"
-
-[[deps.FFMPEG]]
-deps = ["FFMPEG_jll"]
-git-tree-sha1 = "53ebe7511fa11d33bec688a9178fac4e49eeee00"
-uuid = "c87230d0-a227-11e9-1b43-d7ebe4e7570a"
-version = "0.4.2"
 
 [[deps.FFMPEG_jll]]
 deps = ["Artifacts", "Bzip2_jll", "FreeType2_jll", "FriBidi_jll", "JLLWrappers", "LAME_jll", "Libdl", "Ogg_jll", "OpenSSL_jll", "Opus_jll", "PCRE2_jll", "Zlib_jll", "libaom_jll", "libass_jll", "libfdk_aac_jll", "libvorbis_jll", "x264_jll", "x265_jll"]
@@ -1119,12 +1155,6 @@ deps = ["Random"]
 uuid = "9fa8497b-333b-5362-9e8d-4d0656e87820"
 version = "1.11.0"
 
-[[deps.GLFW_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Libglvnd_jll", "Xorg_libXcursor_jll", "Xorg_libXi_jll", "Xorg_libXinerama_jll", "Xorg_libXrandr_jll", "libdecor_jll", "xkbcommon_jll"]
-git-tree-sha1 = "532f9126ad901533af1d4f5c198867227a7bb077"
-uuid = "0656b61e-2033-5cc2-a64a-77c0f6c09b89"
-version = "3.4.0+1"
-
 [[deps.GMP_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "781609d7-10c4-51f6-84f2-b8444358ff6d"
@@ -1135,18 +1165,6 @@ deps = ["Adapt"]
 git-tree-sha1 = "ec632f177c0d990e64d955ccc1b8c04c485a0950"
 uuid = "46192b85-c4d5-4398-a991-12ede77f4527"
 version = "0.1.6"
-
-[[deps.GR]]
-deps = ["Artifacts", "Base64", "DelimitedFiles", "Downloads", "GR_jll", "HTTP", "JSON", "Libdl", "LinearAlgebra", "Preferences", "Printf", "Qt6Wayland_jll", "Random", "Serialization", "Sockets", "TOML", "Tar", "Test", "p7zip_jll"]
-git-tree-sha1 = "ee28ddcd5517d54e417182fec3886e7412d3926f"
-uuid = "28b8d3ca-fb5f-59d9-8090-bfdbd6d07a71"
-version = "0.73.8"
-
-[[deps.GR_jll]]
-deps = ["Artifacts", "Bzip2_jll", "Cairo_jll", "FFMPEG_jll", "Fontconfig_jll", "FreeType2_jll", "GLFW_jll", "JLLWrappers", "JpegTurbo_jll", "Libdl", "Libtiff_jll", "Pixman_jll", "Qt6Base_jll", "Zlib_jll", "libpng_jll"]
-git-tree-sha1 = "f31929b9e67066bee48eec8b03c0df47d31a74b3"
-uuid = "d2c73de3-f751-5644-a686-071e5b155ba9"
-version = "0.73.8+0"
 
 [[deps.GeoDatasets]]
 deps = ["CodecZlib", "GeoInterface", "Printf", "RemoteFiles", "Shapefile", "ZipFile"]
@@ -1474,12 +1492,6 @@ git-tree-sha1 = "a3f24677c21f5bbe9d2a714f95dcd58337fb2856"
 uuid = "82899510-4779-5014-852e-03e436cf321d"
 version = "1.0.0"
 
-[[deps.JLFzf]]
-deps = ["Pipe", "REPL", "Random", "fzf_jll"]
-git-tree-sha1 = "39d64b09147620f5ffbf6b2d3255be3c901bec63"
-uuid = "1019f520-868f-41f5-a6de-eb00f4b6a39c"
-version = "0.1.8"
-
 [[deps.JLLWrappers]]
 deps = ["Artifacts", "Preferences"]
 git-tree-sha1 = "be3dc50a92e5a386872a493a10050136d4703f9b"
@@ -1572,22 +1584,6 @@ git-tree-sha1 = "dda21b8cbd6a6c40d9d02a73230f9d70fed6918c"
 uuid = "b964fa9f-0449-5b57-a5c2-d3ea65f4040f"
 version = "1.4.0"
 
-[[deps.Latexify]]
-deps = ["Format", "InteractiveUtils", "LaTeXStrings", "MacroTools", "Markdown", "OrderedCollections", "Requires"]
-git-tree-sha1 = "ce5f5621cac23a86011836badfedf664a612cee4"
-uuid = "23fbe1c1-3f47-55db-b15f-69d7ec21a316"
-version = "0.16.5"
-
-    [deps.Latexify.extensions]
-    DataFramesExt = "DataFrames"
-    SparseArraysExt = "SparseArrays"
-    SymEngineExt = "SymEngine"
-
-    [deps.Latexify.weakdeps]
-    DataFrames = "a93c6f00-e57d-5684-b7b6-d8193f3e46c0"
-    SparseArrays = "2f01184e-e22b-5df5-ae63-d93ebab69eaf"
-    SymEngine = "123dc426-2d89-5057-bbad-38513e3affd8"
-
 [[deps.LayoutPointers]]
 deps = ["ArrayInterface", "LinearAlgebra", "ManualMemory", "SIMDTypes", "Static", "StaticArrayInterface"]
 git-tree-sha1 = "a9eaadb366f5493a5654e843864c13d8b107548c"
@@ -1662,12 +1658,6 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Libgpg_error_jll"]
 git-tree-sha1 = "9fd170c4bbfd8b935fdc5f8b7aa33532c991a673"
 uuid = "d4300ac3-e22c-5743-9152-c294e39db1e4"
 version = "1.8.11+0"
-
-[[deps.Libglvnd_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "Xorg_libX11_jll", "Xorg_libXext_jll"]
-git-tree-sha1 = "6f73d1dd803986947b2c750138528a999a6c7733"
-uuid = "7e76a0d4-f3c7-5321-8279-8d96eeed0f29"
-version = "1.6.0+0"
 
 [[deps.Libgpg_error_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
@@ -1871,11 +1861,6 @@ deps = ["Artifacts", "Libdl"]
 uuid = "c8ffd9c3-330d-5841-b78e-0817d7145fa1"
 version = "2.28.6+0"
 
-[[deps.Measures]]
-git-tree-sha1 = "c13304c81eec1ed3af7fc20e75fb6b26092a1102"
-uuid = "442fdcdd-2543-5da2-b0f3-8c86c306513e"
-version = "0.3.2"
-
 [[deps.MicrosoftMPI_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "f12a29c4400ba812841c6ace3f4efbb6dbb3ba01"
@@ -2078,11 +2063,6 @@ git-tree-sha1 = "8489905bcdbcfac64d1daa51ca07c0d8f0283821"
 uuid = "69de0a69-1ddd-5017-9359-2bf0b02dc9f0"
 version = "2.8.1"
 
-[[deps.Pipe]]
-git-tree-sha1 = "6842804e7867b115ca9de748a0cf6b364523c16d"
-uuid = "b98c9c47-44ae-5843-9183-064241ee97a0"
-version = "1.3.0"
-
 [[deps.Pixman_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "LLVMOpenMP_jll", "Libdl"]
 git-tree-sha1 = "35621f10a7531bc8fa58f74610b1bfb70a3cfc6b"
@@ -2104,37 +2084,11 @@ git-tree-sha1 = "f9501cc0430a26bc3d156ae1b5b0c1b47af4d6da"
 uuid = "eebad327-c553-4316-9ea0-9fa01ccd7688"
 version = "0.3.3"
 
-[[deps.PlotThemes]]
-deps = ["PlotUtils", "Statistics"]
-git-tree-sha1 = "6e55c6841ce3411ccb3457ee52fc48cb698d6fb0"
-uuid = "ccf2f8ad-2431-5c83-bf29-c5338b663b6a"
-version = "3.2.0"
-
 [[deps.PlotUtils]]
 deps = ["ColorSchemes", "Colors", "Dates", "PrecompileTools", "Printf", "Random", "Reexport", "StableRNGs", "Statistics"]
 git-tree-sha1 = "650a022b2ce86c7dcfbdecf00f78afeeb20e5655"
 uuid = "995b91a9-d308-5afd-9ec6-746e21dbc043"
 version = "1.4.2"
-
-[[deps.Plots]]
-deps = ["Base64", "Contour", "Dates", "Downloads", "FFMPEG", "FixedPointNumbers", "GR", "JLFzf", "JSON", "LaTeXStrings", "Latexify", "LinearAlgebra", "Measures", "NaNMath", "Pkg", "PlotThemes", "PlotUtils", "PrecompileTools", "Printf", "REPL", "Random", "RecipesBase", "RecipesPipeline", "Reexport", "RelocatableFolders", "Requires", "Scratch", "Showoff", "SparseArrays", "Statistics", "StatsBase", "TOML", "UUIDs", "UnicodeFun", "UnitfulLatexify", "Unzip"]
-git-tree-sha1 = "45470145863035bb124ca51b320ed35d071cc6c2"
-uuid = "91a5bcdd-55d7-5caf-9e0b-520d859cae80"
-version = "1.40.8"
-
-    [deps.Plots.extensions]
-    FileIOExt = "FileIO"
-    GeometryBasicsExt = "GeometryBasics"
-    IJuliaExt = "IJulia"
-    ImageInTerminalExt = "ImageInTerminal"
-    UnitfulExt = "Unitful"
-
-    [deps.Plots.weakdeps]
-    FileIO = "5789e2e9-d7fb-5bc7-8068-2c6fae9b9549"
-    GeometryBasics = "5c1252a2-5f33-56bf-86c9-59e7332b4326"
-    IJulia = "7073ff75-c697-5162-941a-fcdaad2a7d2a"
-    ImageInTerminal = "d8c32880-2388-543b-8c61-d9f865259254"
-    Unitful = "1986cc42-f94f-5a68-af5c-568840ba703d"
 
 [[deps.PlutoUI]]
 deps = ["AbstractPlutoDingetjes", "Base64", "ColorTypes", "Dates", "FixedPointNumbers", "Hyperscript", "HypertextLiteral", "IOCapture", "InteractiveUtils", "JSON", "Logging", "MIMEs", "Markdown", "Random", "Reexport", "URIs", "UUIDs"]
@@ -2211,30 +2165,6 @@ git-tree-sha1 = "18e8f4d1426e965c7b532ddd260599e1510d26ce"
 uuid = "4b34888f-f399-49d4-9bb3-47ed5cae4e65"
 version = "1.0.0"
 
-[[deps.Qt6Base_jll]]
-deps = ["Artifacts", "CompilerSupportLibraries_jll", "Fontconfig_jll", "Glib_jll", "JLLWrappers", "Libdl", "Libglvnd_jll", "OpenSSL_jll", "Vulkan_Loader_jll", "Xorg_libSM_jll", "Xorg_libXext_jll", "Xorg_libXrender_jll", "Xorg_libxcb_jll", "Xorg_xcb_util_cursor_jll", "Xorg_xcb_util_image_jll", "Xorg_xcb_util_keysyms_jll", "Xorg_xcb_util_renderutil_jll", "Xorg_xcb_util_wm_jll", "Zlib_jll", "libinput_jll", "xkbcommon_jll"]
-git-tree-sha1 = "492601870742dcd38f233b23c3ec629628c1d724"
-uuid = "c0090381-4147-56d7-9ebc-da0b1113ec56"
-version = "6.7.1+1"
-
-[[deps.Qt6Declarative_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Qt6Base_jll", "Qt6ShaderTools_jll"]
-git-tree-sha1 = "e5dd466bf2569fe08c91a2cc29c1003f4797ac3b"
-uuid = "629bc702-f1f5-5709-abd5-49b8460ea067"
-version = "6.7.1+2"
-
-[[deps.Qt6ShaderTools_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Qt6Base_jll"]
-git-tree-sha1 = "1a180aeced866700d4bebc3120ea1451201f16bc"
-uuid = "ce943373-25bb-56aa-8eca-768745ed7b5a"
-version = "6.7.1+1"
-
-[[deps.Qt6Wayland_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Qt6Base_jll", "Qt6Declarative_jll"]
-git-tree-sha1 = "729927532d48cf79f49070341e1d918a65aba6b0"
-uuid = "e99dba38-086e-5de3-a5b1-6e4c66e897c3"
-version = "6.7.1+1"
-
 [[deps.QuadGK]]
 deps = ["DataStructures", "LinearAlgebra"]
 git-tree-sha1 = "cda3b045cf9ef07a08ad46731f5a3165e56cf3da"
@@ -2277,12 +2207,6 @@ deps = ["PrecompileTools"]
 git-tree-sha1 = "5c3d09cc4f31f5fc6af001c250bf1278733100ff"
 uuid = "3cdcf5f2-1ef4-517c-9805-6587b60abb01"
 version = "1.3.4"
-
-[[deps.RecipesPipeline]]
-deps = ["Dates", "NaNMath", "PlotUtils", "PrecompileTools", "RecipesBase"]
-git-tree-sha1 = "45cf9fd0ca5839d06ef333c8201714e888486342"
-uuid = "01d81517-befc-4cb6-b9ec-a95719d0359c"
-version = "0.6.12"
 
 [[deps.RecursiveArrayTools]]
 deps = ["Adapt", "ArrayInterface", "DocStringExtensions", "GPUArraysCore", "IteratorInterfaceExtensions", "LinearAlgebra", "RecipesBase", "StaticArraysCore", "Statistics", "SymbolicIndexingInterface", "Tables"]
@@ -2766,40 +2690,11 @@ weakdeps = ["ConstructionBase", "InverseFunctions"]
     ConstructionBaseUnitfulExt = "ConstructionBase"
     InverseFunctionsUnitfulExt = "InverseFunctions"
 
-[[deps.UnitfulLatexify]]
-deps = ["LaTeXStrings", "Latexify", "Unitful"]
-git-tree-sha1 = "975c354fcd5f7e1ddcc1f1a23e6e091d99e99bc8"
-uuid = "45397f5d-5981-4c77-b2b3-fc36d6e9b728"
-version = "1.6.4"
-
-[[deps.Unzip]]
-git-tree-sha1 = "ca0969166a028236229f63514992fc073799bb78"
-uuid = "41fe7b60-77ed-43a1-b4f0-825fd5a5650d"
-version = "0.2.0"
-
 [[deps.VectorizationBase]]
 deps = ["ArrayInterface", "CPUSummary", "HostCPUFeatures", "IfElse", "LayoutPointers", "Libdl", "LinearAlgebra", "SIMDTypes", "Static", "StaticArrayInterface"]
 git-tree-sha1 = "e7f5b81c65eb858bed630fe006837b935518aca5"
 uuid = "3d5dd08c-fd9d-11e8-17fa-ed2836048c2f"
 version = "0.21.70"
-
-[[deps.Vulkan_Loader_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Wayland_jll", "Xorg_libX11_jll", "Xorg_libXrandr_jll", "xkbcommon_jll"]
-git-tree-sha1 = "2f0486047a07670caad3a81a075d2e518acc5c59"
-uuid = "a44049a8-05dd-5a78-86c9-5fde0876e88c"
-version = "1.3.243+0"
-
-[[deps.Wayland_jll]]
-deps = ["Artifacts", "EpollShim_jll", "Expat_jll", "JLLWrappers", "Libdl", "Libffi_jll", "Pkg", "XML2_jll"]
-git-tree-sha1 = "7558e29847e99bc3f04d6569e82d0f5c54460703"
-uuid = "a2964d1f-97da-50d4-b82a-358c7fce9d89"
-version = "1.21.0+1"
-
-[[deps.Wayland_protocols_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "93f43ab61b16ddfb2fd3bb13b3ce241cafb0e6c9"
-uuid = "2381bf8a-dfd0-557d-9999-79630e7b1b91"
-version = "1.31.0+0"
 
 [[deps.WeakRefStrings]]
 deps = ["DataAPI", "InlineStrings", "Parsers"]
@@ -2836,18 +2731,6 @@ git-tree-sha1 = "ac88fb95ae6447c8dda6a5503f3bafd496ae8632"
 uuid = "ffd25f8a-64ca-5728-b0f7-c24cf3aae800"
 version = "5.4.6+0"
 
-[[deps.Xorg_libICE_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "326b4fea307b0b39892b3e85fa451692eda8d46c"
-uuid = "f67eecfb-183a-506d-b269-f58e52b52d7c"
-version = "1.1.1+0"
-
-[[deps.Xorg_libSM_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_libICE_jll"]
-git-tree-sha1 = "3796722887072218eabafb494a13c963209754ce"
-uuid = "c834827a-8449-5923-a945-d239c165b7dd"
-version = "1.2.4+0"
-
 [[deps.Xorg_libX11_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_libxcb_jll", "Xorg_xtrans_jll"]
 git-tree-sha1 = "afead5aba5aa507ad5a3bf01f58f82c8d1403495"
@@ -2860,12 +2743,6 @@ git-tree-sha1 = "6035850dcc70518ca32f012e46015b9beeda49d8"
 uuid = "0c0b7dd1-d40b-584c-a123-a41640f87eec"
 version = "1.0.11+0"
 
-[[deps.Xorg_libXcursor_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "Xorg_libXfixes_jll", "Xorg_libXrender_jll"]
-git-tree-sha1 = "12e0eb3bc634fa2080c1c37fccf56f7c22989afd"
-uuid = "935fb764-8cf2-53bf-bb30-45bb1f8bf724"
-version = "1.2.0+4"
-
 [[deps.Xorg_libXdmcp_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
 git-tree-sha1 = "34d526d318358a859d7de23da945578e8e8727b7"
@@ -2877,30 +2754,6 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_libX11_jll"]
 git-tree-sha1 = "d2d1a5c49fae4ba39983f63de6afcbea47194e85"
 uuid = "1082639a-0dae-5f34-9b06-72781eeb8cb3"
 version = "1.3.6+0"
-
-[[deps.Xorg_libXfixes_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "Xorg_libX11_jll"]
-git-tree-sha1 = "0e0dc7431e7a0587559f9294aeec269471c991a4"
-uuid = "d091e8ba-531a-589c-9de9-94069b037ed8"
-version = "5.0.3+4"
-
-[[deps.Xorg_libXi_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "Xorg_libXext_jll", "Xorg_libXfixes_jll"]
-git-tree-sha1 = "89b52bc2160aadc84d707093930ef0bffa641246"
-uuid = "a51aa0fd-4e3c-5386-b890-e753decda492"
-version = "1.7.10+4"
-
-[[deps.Xorg_libXinerama_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "Xorg_libXext_jll"]
-git-tree-sha1 = "26be8b1c342929259317d8b9f7b53bf2bb73b123"
-uuid = "d1454406-59df-5ea1-beac-c340f2130bc3"
-version = "1.1.4+4"
-
-[[deps.Xorg_libXrandr_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "Xorg_libXext_jll", "Xorg_libXrender_jll"]
-git-tree-sha1 = "34cea83cb726fb58f325887bf0612c6b3fb17631"
-uuid = "ec84b674-ba8e-5d96-8ba1-2a689ba10484"
-version = "1.5.2+4"
 
 [[deps.Xorg_libXrender_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_libX11_jll"]
@@ -2919,60 +2772,6 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "XSLT_jll", "Xorg_libXau_jll", "Xor
 git-tree-sha1 = "bcd466676fef0878338c61e655629fa7bbc69d8e"
 uuid = "c7cfdc94-dc32-55de-ac96-5a1b8d977c5b"
 version = "1.17.0+0"
-
-[[deps.Xorg_libxkbfile_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_libX11_jll"]
-git-tree-sha1 = "730eeca102434283c50ccf7d1ecdadf521a765a4"
-uuid = "cc61e674-0454-545c-8b26-ed2c68acab7a"
-version = "1.1.2+0"
-
-[[deps.Xorg_xcb_util_cursor_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_xcb_util_image_jll", "Xorg_xcb_util_jll", "Xorg_xcb_util_renderutil_jll"]
-git-tree-sha1 = "04341cb870f29dcd5e39055f895c39d016e18ccd"
-uuid = "e920d4aa-a673-5f3a-b3d7-f755a4d47c43"
-version = "0.1.4+0"
-
-[[deps.Xorg_xcb_util_image_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "Xorg_xcb_util_jll"]
-git-tree-sha1 = "0fab0a40349ba1cba2c1da699243396ff8e94b97"
-uuid = "12413925-8142-5f55-bb0e-6d7ca50bb09b"
-version = "0.4.0+1"
-
-[[deps.Xorg_xcb_util_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "Xorg_libxcb_jll"]
-git-tree-sha1 = "e7fd7b2881fa2eaa72717420894d3938177862d1"
-uuid = "2def613f-5ad1-5310-b15b-b15d46f528f5"
-version = "0.4.0+1"
-
-[[deps.Xorg_xcb_util_keysyms_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "Xorg_xcb_util_jll"]
-git-tree-sha1 = "d1151e2c45a544f32441a567d1690e701ec89b00"
-uuid = "975044d2-76e6-5fbe-bf08-97ce7c6574c7"
-version = "0.4.0+1"
-
-[[deps.Xorg_xcb_util_renderutil_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "Xorg_xcb_util_jll"]
-git-tree-sha1 = "dfd7a8f38d4613b6a575253b3174dd991ca6183e"
-uuid = "0d47668e-0667-5a69-a72c-f761630bfb7e"
-version = "0.3.9+1"
-
-[[deps.Xorg_xcb_util_wm_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "Xorg_xcb_util_jll"]
-git-tree-sha1 = "e78d10aab01a4a154142c5006ed44fd9e8e31b67"
-uuid = "c22f9ab0-d5fe-5066-847c-f4bb1cd4e361"
-version = "0.4.1+1"
-
-[[deps.Xorg_xkbcomp_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_libxkbfile_jll"]
-git-tree-sha1 = "330f955bc41bb8f5270a369c473fc4a5a4e4d3cb"
-uuid = "35661453-b289-5fab-8a00-3d9160c6a3a4"
-version = "1.4.6+0"
-
-[[deps.Xorg_xkeyboard_config_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Xorg_xkbcomp_jll"]
-git-tree-sha1 = "691634e5453ad362044e2ad653e79f3ee3bb98c3"
-uuid = "33bec58e-1273-512f-9401-5d533626f822"
-version = "2.39.0+0"
 
 [[deps.Xorg_xtrans_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
@@ -2996,24 +2795,6 @@ deps = ["Artifacts", "JLLWrappers", "Libdl"]
 git-tree-sha1 = "555d1076590a6cc2fdee2ef1469451f872d8b41b"
 uuid = "3161d3a3-bdf6-5164-811a-617609db77b4"
 version = "1.5.6+1"
-
-[[deps.eudev_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "gperf_jll"]
-git-tree-sha1 = "431b678a28ebb559d224c0b6b6d01afce87c51ba"
-uuid = "35ca27e7-8b34-5b7f-bca9-bdc33f59eb06"
-version = "3.2.9+0"
-
-[[deps.fzf_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl"]
-git-tree-sha1 = "936081b536ae4aa65415d869287d43ef3cb576b2"
-uuid = "214eeab7-80f7-51ab-84ad-2988db7cef09"
-version = "0.53.0+0"
-
-[[deps.gperf_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "3516a5630f741c9eecb3720b1ec9d8edc3ecc033"
-uuid = "1a1c6b14-54f6-533d-8383-74cd7377aa70"
-version = "3.1.1+0"
 
 [[deps.isoband_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
@@ -3044,29 +2825,11 @@ deps = ["Artifacts", "Libdl"]
 uuid = "8e850b90-86db-534c-a0d3-1478176c7d93"
 version = "5.11.0+0"
 
-[[deps.libdecor_jll]]
-deps = ["Artifacts", "Dbus_jll", "JLLWrappers", "Libdl", "Libglvnd_jll", "Pango_jll", "Wayland_jll", "xkbcommon_jll"]
-git-tree-sha1 = "9bf7903af251d2050b467f76bdbe57ce541f7f4f"
-uuid = "1183f4f0-6f2a-5f1a-908b-139f9cdfea6f"
-version = "0.2.2+0"
-
-[[deps.libevdev_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "141fe65dc3efabb0b1d5ba74e91f6ad26f84cc22"
-uuid = "2db6ffa8-e38f-5e21-84af-90c45d0032cc"
-version = "1.11.0+0"
-
 [[deps.libfdk_aac_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl"]
 git-tree-sha1 = "8a22cf860a7d27e4f3498a0fe0811a7957badb38"
 uuid = "f638f0a6-7fb0-5443-88ba-1cc74229b280"
 version = "2.0.3+0"
-
-[[deps.libinput_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "eudev_jll", "libevdev_jll", "mtdev_jll"]
-git-tree-sha1 = "ad50e5b90f222cfe78aa3d5183a20a12de1322ce"
-uuid = "36db933b-70db-51c0-b978-0f229ee0e533"
-version = "1.18.0+0"
 
 [[deps.libpng_jll]]
 deps = ["Artifacts", "JLLWrappers", "Libdl", "Zlib_jll"]
@@ -3091,12 +2854,6 @@ deps = ["Artifacts", "Bzip2_jll", "GnuTLS_jll", "JLLWrappers", "Libdl", "XZ_jll"
 git-tree-sha1 = "668ac0297e6bd8f4d53dfdcd3ace71f2e00f4a35"
 uuid = "337d8026-41b4-5cde-a456-74a10e5b31d1"
 version = "1.11.1+0"
-
-[[deps.mtdev_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
-git-tree-sha1 = "814e154bdb7be91d78b6802843f76b6ece642f11"
-uuid = "009596ad-96f7-51b1-9f1b-5ce2d5e8a71e"
-version = "1.1.6+0"
 
 [[deps.nghttp2_jll]]
 deps = ["Artifacts", "Libdl"]
@@ -3125,12 +2882,6 @@ deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg"]
 git-tree-sha1 = "ee567a171cce03570d77ad3a43e90218e38937a9"
 uuid = "dfaa095f-4041-5dcd-9319-2fabd8486b76"
 version = "3.5.0+0"
-
-[[deps.xkbcommon_jll]]
-deps = ["Artifacts", "JLLWrappers", "Libdl", "Pkg", "Wayland_jll", "Wayland_protocols_jll", "Xorg_libxcb_jll", "Xorg_xkeyboard_config_jll"]
-git-tree-sha1 = "9c304562909ab2bab0262639bd4f444d7bc2be37"
-uuid = "d8fb68d0-12a3-5cfd-a85a-d49703b185fd"
-version = "1.4.1+1"
 """
 
 # ╔═╡ Cell order:
@@ -3155,20 +2906,21 @@ version = "1.4.1+1"
 # ╠═a554357a-58e8-48dc-95d4-263991f4272e
 # ╟─8cbac282-8fc8-452d-9144-63dfbc5d9393
 # ╟─809d82b6-6ff6-4507-a0f7-cf98fcd21db7
-# ╟─d95f5715-90e7-4de1-b761-bb4b3916e37f
+# ╠═d95f5715-90e7-4de1-b761-bb4b3916e37f
 # ╟─eb9cc268-7ec4-456e-b155-ec82a1c07823
 # ╠═df2aa0a0-c2a7-49c1-affa-06173e35e3db
 # ╟─d9873211-17ea-4e06-b8fb-33f563d4bd17
-# ╟─05199f30-bbce-44e1-8c8c-4aa023ee4c02
+# ╠═05199f30-bbce-44e1-8c8c-4aa023ee4c02
 # ╟─57b4b501-fed0-4c63-8ffb-e32ceec7adf6
-# ╟─fe352f2f-9bef-4072-ad02-abac04247e34
+# ╠═fe352f2f-9bef-4072-ad02-abac04247e34
 # ╟─5e1ca2cd-7049-42ca-9379-24f5a11ec797
 # ╠═7790b356-05c8-4272-b2d7-30aee0b702b6
 # ╟─6834561d-8901-4dbd-8524-44a52a8aeb3a
 # ╠═fd17a810-7b10-431a-a02d-017f163ea953
 # ╟─2ae84a19-413b-484b-b429-d3edd45c51c2
-# ╟─0096fc07-8e7e-4f98-addd-e756f752db6d
+# ╠═0096fc07-8e7e-4f98-addd-e756f752db6d
 # ╟─7e1737a2-69fb-4564-852c-8ab521eec9a4
+# ╠═7c6ba581-2753-4dec-b709-b25d4256770b
 # ╟─d6cad1c5-a1f0-48cb-99ed-a2f1adeedf8d
 # ╠═f55d9c0d-6096-46ec-a5f2-45ad6ba9014c
 # ╟─fce94a4d-fc68-40dc-b9db-e53aa5024aec
@@ -3176,9 +2928,9 @@ version = "1.4.1+1"
 # ╟─fb517a88-0645-481c-b2bf-f4f8bf6b0530
 # ╟─dfc4ebc6-7305-4121-b6db-801d9978cee1
 # ╠═fe334b32-af15-4154-a7d3-a9443678f176
-# ╟─7b1221a8-f82c-48e4-9a5a-5bba12ca94f2
+# ╠═7b1221a8-f82c-48e4-9a5a-5bba12ca94f2
 # ╟─d36d422e-999b-4a2d-a195-d1e20a69a032
 # ╟─0ad22d9b-fd54-474f-9fa8-1d45a9a9d3c1
-# ╟─0adb37ec-0b90-48cc-b79c-cf1034aa8c22
+# ╠═0adb37ec-0b90-48cc-b79c-cf1034aa8c22
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
