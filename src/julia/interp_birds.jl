@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.0
+# v0.20.4
 
 using Markdown
 using InteractiveUtils
@@ -53,32 +53,28 @@ The packages will be automatically downloaded the first time the notebook is exe
 md"""
 ## User parameters
 You can set here:
-- the domain of interest
-- the grid spatial resolution
-- the time periods to be compared
-- the `DIVAnd` analysis parameters
-- the directory paths
+- the domain of interest and the spatial resolution,
+- the time periods to be compared,
+- the analysis parameters of `DIVAnd` (`len` and `epsilon2`),
+- the data directory path.
 """
 
 # ╔═╡ 3a20f6b1-2f91-46f8-a32a-920572487c08
 begin
-
-	datadir = "../../data/"
-	mkpath(datadir)
-	
-	domain = (-55, 21, 14., 72.)
-	deltalon = 0.5
-	deltalat = 0.5
-
-	# Correlation length and noise-to-signal ratio
-	len = 5.
-	epsilon2 = 10.
+	thedomain = (-55, 21, 14., 72.)
+	deltalon = 1.
+	deltalat = 1.
 
 	timeperiods = [
 		(Dates.Date(1980, 1, 1), Dates.Date(1999, 12, 31)), 
 		(Dates.Date(2000, 1, 1), Dates.Date(2019, 12, 31))
 	]
+
 	
+	len = 5.
+	epsilon2 = 10.
+	
+	datadir = "../../data/"
 	datafileevent = joinpath(datadir, "event.txt")
 	datafileoccur = joinpath(datadir, "occurrence.txt");
 end
@@ -86,6 +82,7 @@ end
 # ╔═╡ 88455c82-b59a-4664-ba20-3db321f276ac
 md"""
 ### 👉 Switches for the plots
+#### Create plots
 !!! info "Select the plots to be created"
 	Enable/disable the plots by clicking the boxes below.
 """
@@ -134,39 +131,6 @@ begin
 	close(r)
 end
 
-# ╔═╡ 88455c82-b59a-4664-ba20-3db321f276ac
-md"""
-### 👉 Switches for the plots
-#### Create plots
-!!! info "Select the plots to be created"
-	Enable/disable the plots by clicking the boxes below.
-"""
-
-# ╔═╡ 179166ff-b949-415b-97d6-2c1d556f7421
-@bind plotting_options MultiCheckBox(["Plot results", "Plot mask", "Plot observations", "Plot histogram"]; default =["Plot results", "Plot mask", "Plot observations", "Plot histogram"])
-
-# ╔═╡ 4f2515f7-6015-497a-bbda-8649f2485590
-md"""
-## User parameters
-You can set here:
-- the domain of interest
-- the time periods to be compared
-- the directory paths
-"""
-
-# ╔═╡ 3a20f6b1-2f91-46f8-a32a-920572487c08
-begin
-	domain = (-55, 21, 14., 72.)
-
-	timeperiods = [
-		(Dates.Date(1980, 1, 1), Dates.Date(1999, 12, 31)), 
-		(Dates.Date(2000, 1, 1), Dates.Date(2019, 12, 31))
-	]
-	
-	datafileevent = joinpath(datadir, "event.txt")
-	datafileoccur = joinpath(datadir, "occurrence.txt");
-end
-
 # ╔═╡ e0349ab7-efd8-4469-a73e-a03662301f76
 md"""
 Load the mask for plotting
@@ -198,7 +162,7 @@ md"""
 
 
 # ╔═╡ 929609ab-709e-4b67-8135-e4815be42bca
-@bind myspecies Select(sort(unique(occurences.scientificName)))
+@bind myspecies Select(unique(occurences.scientificName))
 
 # ╔═╡ 86fc4f9f-7741-4190-8604-fa0631347d70
 md"""
@@ -264,7 +228,7 @@ begin
 	
 	total_count_coordinates = innerjoin(total_count_df, events, on = :eventID);
 	select!(total_count_coordinates, :decimalLongitude, :decimalLatitude, :eventDate, :total_count);
-	npoints = size(total_count_coordinates)[1]
+	npoints = size(total_count_coordinates)[1];
 end
 
 # ╔═╡ eb9cc268-7ec4-456e-b155-ec82a1c07823
@@ -308,11 +272,11 @@ md"""
 # ╔═╡ fe352f2f-9bef-4072-ad02-abac04247e34
 if "Plot observations" in plotting_options
 	fig = Figure()
-	ax = GeoAxis(fig[1,1], xticks=-55:20:30, yticks=10:10:80, title="Observations of $(myspecies)", titlesize=20)
+	ax = GeoAxis(fig[1,1], xticks=-55:20:30, yticks=10:10:80, title="Observations of $(myspecies)\n($(npoints) obs.)", titlesize=20)
 	scatter!(ax, total_count_coordinates.decimalLongitude,
 		total_count_coordinates.decimalLatitude, color=:blue, markersize=4)
-	xlims!(ax, (domain[1], domain[2]))
-	ylims!(ax, (domain[3], domain[4]))
+	xlims!(ax, (thedomain[1], thedomain[2]))
+	ylims!(ax, (thedomain[3], thedomain[4]))
 	contour!(ax, lont, latt, lsmask, levels=[0.], color = :black)
 	fig
 end
@@ -326,9 +290,8 @@ md"""
 # ╔═╡ 7790b356-05c8-4272-b2d7-30aee0b702b6
 begin
 
-	lonr = domain[1]:deltalon:domain[2]
-	latr = domain[3]:deltalat:domain[4]
-	
+	lonr = thedomain[1]:deltalon:thedomain[2]
+	latr = thedomain[3]:deltalat:thedomain[4]
 	mask, (pm,pn), (xi,yi) = DIVAnd.DIVAnd_rectdom(lonr, latr);
 end
 
@@ -355,8 +318,8 @@ if "Plot mask" in plotting_options
 	fig2 = Figure()
 	ax2 = GeoAxis(fig2[1,1], xticks=-55:20:30, yticks=10:10:80, title="Land-sea mask\nfrom GEBCO bathymetry", titlesize=20)
 	contourf!(ax2, xb, yb, maskbathy, levels=[-1.,0, 1.], colormap=:binary)
-	xlims!(ax2, (domain[1], domain[2]))
-	ylims!(ax2, (domain[3], domain[4]))
+	xlims!(ax2, (thedomain[1], thedomain[2]))
+	ylims!(ax2, (thedomain[3], thedomain[4]))
 	fig2
 end
 
@@ -365,12 +328,6 @@ md"""
 ## Perform computation
 ### Set the values of the analysis parameters
 """
-
-# ╔═╡ 7c6ba581-2753-4dec-b709-b25d4256770b
-begin 
-	len = 5.
-	epsilon2 = 10.
-end
 
 # ╔═╡ d6cad1c5-a1f0-48cb-99ed-a2f1adeedf8d
 # ╠═╡ disabled = true
@@ -396,7 +353,7 @@ if npoints > 5
 	cpme = DIVAnd_cpme(maskbathy, (pm, pn), (xi, yi), (total_count_coordinates.decimalLongitude, total_count_coordinates.decimalLatitude) ,Float64.(total_count_coordinates.total_count), len, epsilon2);
 else
 	@info("Not enough observations to perform interpolation")
-end
+end;
 
 # ╔═╡ fb517a88-0645-481c-b2bf-f4f8bf6b0530
 md"""
@@ -421,8 +378,8 @@ if ("Plot results" in plotting_options) & (npoints > 5)
 	ax3 = GeoAxis(fig3[1,1], xticks=-55:20:30, yticks=10:10:80, title="Gridded count of ''$(myspecies)''\nmasked where relative error < $(maxerror)%", titlesize=20)
 	contourf!(ax3, xb, yb, maskbathy, levels=[-1.,0, 1.], colormap=:binary)
 	cc = contourf!(ax3, lonr, latr, fi2plot, levels=levels, colormap=Reverse("RdYlBu"))
-	xlims!(ax3, (domain[1], domain[2]))
-	ylims!(ax3, (domain[3], domain[4]))
+	xlims!(ax3, (thedomain[1], thedomain[2]))
+	ylims!(ax3, (thedomain[3], thedomain[4]))
 	Colorbar(fig3[1, 2], cc)
 	fig3
 else
@@ -472,8 +429,8 @@ if ("Plot results" in plotting_options) & (length(timeperiods) > 1) & (npoints >
 		contourf!(ax4, xb, yb, maskbathy, levels=[-1.,0, 1.], colormap=:binary)
 		cc = contourf!(ax4, lonr, latr, fi2plotall[ii,:,:], levels=levels2, 
 		colormap=Reverse("RdYlBu"))
-		xlims!(ax4, (domain[1], domain[2]))
-		ylims!(ax4, (domain[3], domain[4]))
+		xlims!(ax4, (thedomain[1], thedomain[2]))
+		ylims!(ax4, (thedomain[3], thedomain[4]))
 		
 	end
 	Colorbar(fig4[1, ntimes+1], cc)
@@ -2899,7 +2856,7 @@ version = "3.5.0+0"
 # ╟─e1c13b19-09cf-4f1c-a38a-cb907e69f9fc
 # ╠═6288868f-a120-43e9-addb-5eb3a8780282
 # ╟─c3ba8499-d22c-4786-84b2-680670763c6b
-# ╟─929609ab-709e-4b67-8135-e4815be42bca
+# ╠═929609ab-709e-4b67-8135-e4815be42bca
 # ╟─86fc4f9f-7741-4190-8604-fa0631347d70
 # ╟─93bca313-249b-43d8-8603-41da2954c150
 # ╟─3bcef6d3-c956-4ea7-8576-0d291e1e82e3
@@ -2920,7 +2877,6 @@ version = "3.5.0+0"
 # ╟─2ae84a19-413b-484b-b429-d3edd45c51c2
 # ╠═0096fc07-8e7e-4f98-addd-e756f752db6d
 # ╟─7e1737a2-69fb-4564-852c-8ab521eec9a4
-# ╠═7c6ba581-2753-4dec-b709-b25d4256770b
 # ╟─d6cad1c5-a1f0-48cb-99ed-a2f1adeedf8d
 # ╠═f55d9c0d-6096-46ec-a5f2-45ad6ba9014c
 # ╟─fce94a4d-fc68-40dc-b9db-e53aa5024aec
