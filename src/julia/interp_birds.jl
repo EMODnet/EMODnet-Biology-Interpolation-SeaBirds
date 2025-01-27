@@ -247,6 +247,7 @@ begin
         :eventDate,
         :total_count,
     )
+	npoints = size(total_count_coordinates)[1];
 end
 
 # ╔═╡ eb9cc268-7ec4-456e-b155-ec82a1c07823
@@ -272,26 +273,14 @@ Showing the number of events per year.
 
 # ╔═╡ 05199f30-bbce-44e1-8c8c-4aa023ee4c02
 if "Plot histogram" in plotting_options
-    years = Dates.year.(total_count_coordinates.eventDate)
-    yearmin = minimum(years)
-    yearmax = maximum(years)
-    histogram(
-        total_count_coordinates.eventDate;
-        bins = 1 - yearmin + yearmax,
-        color = :gray,
-        label = "",
-        title = "Number of events",
-        titlelocation = :left,
-    )
-    histogram!(
-        xlabel = "Time",
-        xrotation = 0,
-        xticks = (
-            Dates.DateTime(1980, 1, 1):Dates.Year(10):Dates.DateTime(2020, 1, 1),
-            1980:10:2020,
-        ),
-        dpi = 300,
-    )
+  	years = Dates.year.(total_count_coordinates.eventDate)
+	yearmin = minimum(years)
+	yearmax = maximum(years)
+	fighist = Figure()
+	axhist = Axis(fighist[1,1], title="Number of events per year\n($(yearmin)-$(yearmax))", xlabel="Time")
+	hist!(axhist, years; bins = yearmax - yearmin, color=:gray)
+	hidespines!(axhist, :t, :r) # only top and right
+	fighist
 end
 
 # ╔═╡ 57b4b501-fed0-4c63-8ffb-e32ceec7adf6
@@ -2950,7 +2939,7 @@ version = "3.5.0+0"
 # ╟─6e9669f7-4e5c-4d08-9c1a-51e860839d86
 # ╟─6bab6cd2-36ea-4555-84ae-f751483d3bf2
 # ╠═4f3afffe-3231-11ef-0aea-8b6c089d68a1
-# ╠═4f2515f7-6015-497a-bbda-8649f2485590
+# ╟─4f2515f7-6015-497a-bbda-8649f2485590
 # ╠═3a20f6b1-2f91-46f8-a32a-920572487c08
 # ╠═88455c82-b59a-4664-ba20-3db321f276ac
 # ╟─179166ff-b949-415b-97d6-2c1d556f7421
@@ -2968,19 +2957,19 @@ version = "3.5.0+0"
 # ╠═a554357a-58e8-48dc-95d4-263991f4272e
 # ╟─8cbac282-8fc8-452d-9144-63dfbc5d9393
 # ╟─809d82b6-6ff6-4507-a0f7-cf98fcd21db7
-# ╠═d95f5715-90e7-4de1-b761-bb4b3916e37f
+# ╟─d95f5715-90e7-4de1-b761-bb4b3916e37f
 # ╟─eb9cc268-7ec4-456e-b155-ec82a1c07823
 # ╠═df2aa0a0-c2a7-49c1-affa-06173e35e3db
 # ╟─d9873211-17ea-4e06-b8fb-33f563d4bd17
-# ╠═05199f30-bbce-44e1-8c8c-4aa023ee4c02
+# ╟─05199f30-bbce-44e1-8c8c-4aa023ee4c02
 # ╟─57b4b501-fed0-4c63-8ffb-e32ceec7adf6
-# ╠═fe352f2f-9bef-4072-ad02-abac04247e34
+# ╟─fe352f2f-9bef-4072-ad02-abac04247e34
 # ╟─5e1ca2cd-7049-42ca-9379-24f5a11ec797
 # ╠═7790b356-05c8-4272-b2d7-30aee0b702b6
 # ╟─6834561d-8901-4dbd-8524-44a52a8aeb3a
 # ╠═fd17a810-7b10-431a-a02d-017f163ea953
 # ╟─2ae84a19-413b-484b-b429-d3edd45c51c2
-# ╠═0096fc07-8e7e-4f98-addd-e756f752db6d
+# ╟─0096fc07-8e7e-4f98-addd-e756f752db6d
 # ╟─7e1737a2-69fb-4564-852c-8ab521eec9a4
 # ╟─d6cad1c5-a1f0-48cb-99ed-a2f1adeedf8d
 # ╠═f55d9c0d-6096-46ec-a5f2-45ad6ba9014c
@@ -2992,6 +2981,6 @@ version = "3.5.0+0"
 # ╠═7b1221a8-f82c-48e4-9a5a-5bba12ca94f2
 # ╟─d36d422e-999b-4a2d-a195-d1e20a69a032
 # ╟─0ad22d9b-fd54-474f-9fa8-1d45a9a9d3c1
-# ╠═0adb37ec-0b90-48cc-b79c-cf1034aa8c22
+# ╟─0adb37ec-0b90-48cc-b79c-cf1034aa8c22
 # ╟─00000000-0000-0000-0000-000000000001
 # ╟─00000000-0000-0000-0000-000000000002
