@@ -46,7 +46,8 @@ md"""
 ## 📦📦 Packages
 The packages will be automatically downloaded the first time the notebook is exectuted.         
 
-⚠️ This operation can take some tome to be completed, especially if you run the notebook for the first time.
+!!! warning "⚠️"
+	This operation can take some tome to be completed, especially if you run the notebook for the first time.
 """
 
 # ╔═╡ 4f2515f7-6015-497a-bbda-8649f2485590
@@ -61,22 +62,25 @@ You can set here:
 
 # ╔═╡ 3a20f6b1-2f91-46f8-a32a-920572487c08
 begin
-	thedomain = (-55, 21, 14., 72.)
-	deltalon = 1.
-	deltalat = 1.
 
-	timeperiods = [
-		(Dates.Date(1980, 1, 1), Dates.Date(1999, 12, 31)), 
-		(Dates.Date(2000, 1, 1), Dates.Date(2019, 12, 31))
-	]
+    datadir = "../../data/"
+    mkpath(datadir)
 
-	
-	len = 5.
-	epsilon2 = 10.
-	
-	datadir = "../../data/"
-	datafileevent = joinpath(datadir, "event.txt")
-	datafileoccur = joinpath(datadir, "occurrence.txt");
+    domain = (-55, 21, 14.0, 72.0)
+    deltalon = 0.5
+    deltalat = 0.5
+
+    # Correlation length and noise-to-signal ratio
+    len = 5.0
+    epsilon2 = 10.0
+
+    timeperiods = [
+        (Dates.Date(1980, 1, 1), Dates.Date(1999, 12, 31)),
+        (Dates.Date(2000, 1, 1), Dates.Date(2019, 12, 31)),
+    ]
+
+    datafileevent = joinpath(datadir, "event.txt")
+    datafileoccur = joinpath(datadir, "occurrence.txt")
 end
 
 # ╔═╡ 88455c82-b59a-4664-ba20-3db321f276ac
@@ -88,7 +92,10 @@ md"""
 """
 
 # ╔═╡ 179166ff-b949-415b-97d6-2c1d556f7421
-@bind plotting_options MultiCheckBox(["Plot results", "Plot mask", "Plot observations", "Plot histogram"]; default =["Plot results", "Plot mask", "Plot observations", "Plot histogram"])
+@bind plotting_options MultiCheckBox(
+    ["Plot results", "Plot mask", "Plot observations", "Plot histogram"];
+    default = ["Plot results", "Plot mask", "Plot observations", "Plot histogram"],
+)
 
 # ╔═╡ 3684d7e2-feb8-48b3-ab05-816d56ccb8eb
 md"""
@@ -105,30 +112,30 @@ Two files will be used for the processing:
 """
 
 # ╔═╡ 523aa60d-3d44-48a6-b192-0682eb3cd9f6
-begin 
-	
-	const dataurl = "https://mda.vliz.be/download.php?file=VLIZ_00000772_6442460347bb7759971746"
-	datazip = joinpath(datadir, "birds_data.zip")
-	if isfile(datazip)
-		@info("Data already downloaded")
-	else
-		@info("Downloading data")
-		download(dataurl, datazip)
-	end
+begin
 
-	@info("Extracting data archive")
-	r = ZipFile.Reader(datazip);
-	for f in r.files
-		if isfile(joinpath(datadir, f.name))
-			@info("File $(f.name) already extracted")
-		else
-			@info("Extracting file $(f.name)")
-		 	open(joinpath(datadir, f.name), "w") do df
-       	 		write(df, read(f, String));
-    		end
-		end
-	end
-	close(r)
+    const dataurl = "https://mda.vliz.be/download.php?file=VLIZ_00000772_6442460347bb7759971746"
+    datazip = joinpath(datadir, "birds_data.zip")
+    if isfile(datazip)
+        @info("Data already downloaded")
+    else
+        @info("Downloading data")
+        download(dataurl, datazip)
+    end
+
+    @info("Extracting data archive")
+    r = ZipFile.Reader(datazip)
+    for f in r.files
+        if isfile(joinpath(datadir, f.name))
+            @info("File $(f.name) already extracted")
+        else
+            @info("Extracting file $(f.name)")
+            open(joinpath(datadir, f.name), "w") do df
+                write(df, read(f, String))
+            end
+        end
+    end
+    close(r)
 end
 
 # ╔═╡ e0349ab7-efd8-4469-a73e-a03662301f76
@@ -138,7 +145,7 @@ Load the mask for plotting
 
 # ╔═╡ 3424b197-599b-4e63-922f-bf5a8bc5c034
 begin
-	lont, latt, lsmask = GeoDatasets.landseamask(;resolution='c',grid=5)
+    lont, latt, lsmask = GeoDatasets.landseamask(; resolution = 'c', grid = 5)
 end
 
 # ╔═╡ e1c13b19-09cf-4f1c-a38a-cb907e69f9fc
@@ -149,8 +156,8 @@ md"""
 
 # ╔═╡ 6288868f-a120-43e9-addb-5eb3a8780282
 begin
-	@time dataoccur, headeroccur = readdlm(datafileoccur, '\t', header=true);
-	occurences = DataFrame(dataoccur, vec(headeroccur));
+    @time dataoccur, headeroccur = readdlm(datafileoccur, '\t', header = true)
+    occurences = DataFrame(dataoccur, vec(headeroccur))
 end
 
 # ╔═╡ c3ba8499-d22c-4786-84b2-680670763c6b
@@ -171,15 +178,18 @@ md"""
 
 # ╔═╡ 93bca313-249b-43d8-8603-41da2954c150
 begin
-	@time dataevents, headerevent = readdlm(datafileevent, '\t', header=true);
-	events = DataFrame(dataevents, vec(headerevent));
-	# Keep only "sub-samples" events 
-	# (otherwise no coordinates)
-	events = events[events.type .== "subSample",:];
+    @time dataevents, headerevent = readdlm(datafileevent, '\t', header = true)
+    events = DataFrame(dataevents, vec(headerevent))
+    # Keep only "sub-samples" events 
+    # (otherwise no coordinates)
+    events = events[events.type.=="subSample", :]
 end
 
 # ╔═╡ 3bcef6d3-c956-4ea7-8576-0d291e1e82e3
-function parse_date(xx::SubString{String}, regexdate=r"\d{4}-\d{2}-\d{2}/\d{4}-\d{2}-\d{2}"::Regex)
+function parse_date(
+    xx::SubString{String},
+    regexdate = r"\d{4}-\d{2}-\d{2}/\d{4}-\d{2}-\d{2}"::Regex,
+)
     thedateformat = Dates.DateFormat("yyyy-mm-ddTHH:MM:SSZ") # example: 1993-08-14T07:54:00Z
     mm = match(regexdate, xx)
     if mm !== nothing
@@ -193,19 +203,19 @@ end
 
 # ╔═╡ a554357a-58e8-48dc-95d4-263991f4272e
 begin
-	if !(events.eventDate[1] isa DateTime)
-		transform!(events, "eventDate" => ByRow(parse_date) => "eventDate");
-	end
-	occurences_species = occurences[occurences.scientificName .== myspecies,:];
+    if !(events.eventDate[1] isa DateTime)
+        transform!(events, "eventDate" => ByRow(parse_date) => "eventDate")
+    end
+    occurences_species = occurences[occurences.scientificName.==myspecies, :]
 end
 
 # ╔═╡ 8cbac282-8fc8-452d-9144-63dfbc5d9393
 function get_total_count(occurences::DataFrame)
-    
-    total_count = Dict{String, Int64}()
+
+    total_count = Dict{String,Int64}()
     for (eventID, count) in zip(occurences.id, occurences_species.individualCount)
-        
-	# If the key was already found in the Dict, add the index to the list
+
+        # If the key was already found in the Dict, add the index to the list
         if haskey(total_count, eventID)
             total_count[eventID] += count
         else
@@ -223,12 +233,20 @@ md"""
 
 # ╔═╡ d95f5715-90e7-4de1-b761-bb4b3916e37f
 begin
-	@time total_count = get_total_count(occurences_species);
-	total_count_df = DataFrame(eventID=collect(keys(total_count)), total_count=collect(values(total_count)));
-	
-	total_count_coordinates = innerjoin(total_count_df, events, on = :eventID);
-	select!(total_count_coordinates, :decimalLongitude, :decimalLatitude, :eventDate, :total_count);
-	npoints = size(total_count_coordinates)[1];
+    @time total_count = get_total_count(occurences_species)
+    total_count_df = DataFrame(
+        eventID = collect(keys(total_count)),
+        total_count = collect(values(total_count)),
+    )
+
+    total_count_coordinates = innerjoin(total_count_df, events, on = :eventID)
+    select!(
+        total_count_coordinates,
+        :decimalLongitude,
+        :decimalLatitude,
+        :eventDate,
+        :total_count,
+    )
 end
 
 # ╔═╡ eb9cc268-7ec4-456e-b155-ec82a1c07823
@@ -239,9 +257,9 @@ The file can then be used in other languages (namely: `R`) or for other purposes
 
 # ╔═╡ df2aa0a0-c2a7-49c1-affa-06173e35e3db
 begin
-	myspecies_ = replace(myspecies, " "=>"_")
-	fname = joinpath(datadir, "$(myspecies_).csv")
-	CSV.write(fname, total_count_coordinates)
+    myspecies_ = replace(myspecies, " " => "_")
+    fname = joinpath(datadir, "$(myspecies_).csv")
+    CSV.write(fname, total_count_coordinates)
 end
 
 # ╔═╡ d9873211-17ea-4e06-b8fb-33f563d4bd17
@@ -254,14 +272,26 @@ Showing the number of events per year.
 
 # ╔═╡ 05199f30-bbce-44e1-8c8c-4aa023ee4c02
 if "Plot histogram" in plotting_options
-	years = Dates.year.(total_count_coordinates.eventDate)
-	yearmin = minimum(years)
-	yearmax = maximum(years)
-	fighist = Figure()
-	axhist = Axis(fighist[1,1], title="Number of events per year\n($(yearmin)-$(yearmax))", xlabel="Time")
-	hist!(axhist, years; bins = yearmax - yearmin, color=:gray)
-	hidespines!(axhist, :t, :r) # only top and right
-	fighist
+    years = Dates.year.(total_count_coordinates.eventDate)
+    yearmin = minimum(years)
+    yearmax = maximum(years)
+    histogram(
+        total_count_coordinates.eventDate;
+        bins = 1 - yearmin + yearmax,
+        color = :gray,
+        label = "",
+        title = "Number of events",
+        titlelocation = :left,
+    )
+    histogram!(
+        xlabel = "Time",
+        xrotation = 0,
+        xticks = (
+            Dates.DateTime(1980, 1, 1):Dates.Year(10):Dates.DateTime(2020, 1, 1),
+            1980:10:2020,
+        ),
+        dpi = 300,
+    )
 end
 
 # ╔═╡ 57b4b501-fed0-4c63-8ffb-e32ceec7adf6
@@ -271,14 +301,24 @@ md"""
 
 # ╔═╡ fe352f2f-9bef-4072-ad02-abac04247e34
 if "Plot observations" in plotting_options
-	fig = Figure()
-	ax = GeoAxis(fig[1,1], xticks=-55:20:30, yticks=10:10:80, title="Observations of $(myspecies)\n($(npoints) obs.)", titlesize=20)
-	scatter!(ax, total_count_coordinates.decimalLongitude,
-		total_count_coordinates.decimalLatitude, color=:blue, markersize=4)
-	xlims!(ax, (thedomain[1], thedomain[2]))
-	ylims!(ax, (thedomain[3], thedomain[4]))
-	contour!(ax, lont, latt, lsmask, levels=[0.], color = :black)
-	fig
+    fig = Figure()
+    ax = GeoAxis(
+        fig[1, 1],
+        xticks = -55:20:30,
+        yticks = 10:10:80,
+        title = "Observations of $(myspecies)",
+        titlesize = 20,
+    )
+    GeoMakie.plot!(
+        total_count_coordinates.decimalLongitude,
+        total_count_coordinates.decimalLatitude;
+        color = :gray,
+        markersize = 2,
+    )
+    GeoMakie.xlims!(ax, (domain[1], domain[2]))
+    GeoMakie.ylims!(ax, (domain[3], domain[4]))
+    GeoMakie.contour!(ax, lont, latt, lsmask, levels = [0.0], color = :black)
+    fig
 end
 
 # ╔═╡ 5e1ca2cd-7049-42ca-9379-24f5a11ec797
@@ -290,9 +330,10 @@ md"""
 # ╔═╡ 7790b356-05c8-4272-b2d7-30aee0b702b6
 begin
 
-	lonr = thedomain[1]:deltalon:thedomain[2]
-	latr = thedomain[3]:deltalat:thedomain[4]
-	mask, (pm,pn), (xi,yi) = DIVAnd.DIVAnd_rectdom(lonr, latr);
+    lonr = domain[1]:deltalon:domain[2]
+    latr = domain[3]:deltalat:domain[4]
+
+    mask, (pm, pn), (xi, yi) = DIVAnd.DIVAnd_rectdom(lonr, latr)
 end
 
 # ╔═╡ 6834561d-8901-4dbd-8524-44a52a8aeb3a
@@ -302,10 +343,11 @@ md"""
 
 # ╔═╡ fd17a810-7b10-431a-a02d-017f163ea953
 begin
-	bathname = joinpath(datadir, "gebco_30sec_4.nc")
-	isfile(bathname) ? @info("Bathymetry file already downloaded") : download("https://dox.uliege.be/index.php/s/RSwm4HPHImdZoQP/download", bathname)
-	
-	xb, yb, maskbathy = DIVAnd.load_mask(bathname, true , lonr, latr, 0.0);
+    bathname = joinpath(datadir, "gebco_30sec_4.nc")
+    isfile(bathname) ? @info("Bathymetry file already downloaded") :
+    download("https://dox.uliege.be/index.php/s/RSwm4HPHImdZoQP/download", bathname)
+
+    xb, yb, maskbathy = DIVAnd.load_mask(bathname, true, lonr, latr, 0.0)
 end
 
 # ╔═╡ 2ae84a19-413b-484b-b429-d3edd45c51c2
@@ -315,12 +357,18 @@ md"""
 
 # ╔═╡ 0096fc07-8e7e-4f98-addd-e756f752db6d
 if "Plot mask" in plotting_options
-	fig2 = Figure()
-	ax2 = GeoAxis(fig2[1,1], xticks=-55:20:30, yticks=10:10:80, title="Land-sea mask\nfrom GEBCO bathymetry", titlesize=20)
-	contourf!(ax2, xb, yb, maskbathy, levels=[-1.,0, 1.], colormap=:binary)
-	xlims!(ax2, (thedomain[1], thedomain[2]))
-	ylims!(ax2, (thedomain[3], thedomain[4]))
-	fig2
+    fig2 = Figure()
+    ax2 = GeoAxis(
+        fig2[1, 1],
+        xticks = -55:20:30,
+        yticks = 10:10:80,
+        title = "Land-sea mask\nfrom GEBCO bathymetry",
+        titlesize = 20,
+    )
+    GeoMakie.contourf!(ax2, xb, yb, maskbathy, levels = [-1.0, 0, 1.0], colormap = :binary)
+    GeoMakie.xlims!(ax2, (domain[1], domain[2]))
+    GeoMakie.ylims!(ax2, (domain[3], domain[4]))
+    fig2
 end
 
 # ╔═╡ 7e1737a2-69fb-4564-852c-8ab521eec9a4
@@ -336,11 +384,15 @@ md"""
   ╠═╡ =#
 
 # ╔═╡ f55d9c0d-6096-46ec-a5f2-45ad6ba9014c
-if npoints > 5
-	fi, s = DIVAndrun(maskbathy, (pm, pn), (xi, yi), (total_count_coordinates.decimalLongitude, total_count_coordinates.decimalLatitude), Float64.(total_count_coordinates.total_count), len, epsilon2);
-else
-	@info("Not enough observations to perform interpolation")
-end
+@time fi, s = DIVAndrun(
+    maskbathy,
+    (pm, pn),
+    (xi, yi),
+    (total_count_coordinates.decimalLongitude, total_count_coordinates.decimalLatitude),
+    Float64.(total_count_coordinates.total_count),
+    len,
+    epsilon2,
+);
 
 # ╔═╡ fce94a4d-fc68-40dc-b9db-e53aa5024aec
 md"""
@@ -362,7 +414,7 @@ The field is masked where the relative error (as compute by the previous cell) i
 """
 
 # ╔═╡ dfc4ebc6-7305-4121-b6db-801d9978cee1
-@bind maxerror PlutoUI.Slider(0:5:100, default=20)
+@bind maxerror PlutoUI.Slider(0:5:100, default = 20)
 
 # ╔═╡ fe334b32-af15-4154-a7d3-a9443678f176
 @info("Maximal allowed error = $(maxerror)%")
@@ -370,20 +422,31 @@ The field is masked where the relative error (as compute by the previous cell) i
 # ╔═╡ 7b1221a8-f82c-48e4-9a5a-5bba12ca94f2
 if ("Plot results" in plotting_options) & (npoints > 5)
 
-	fi2plot = copy(fi);
-	fi2plot[cpme .> maxerror /100] .= NaN
-	levels = range(0, maximum(filter(!isnan, fi2plot)), length=20)
+    fi2plot = copy(fi)
+    fi2plot[cpme.>maxerror/100] .= NaN
+    levels = range(0, maximum(filter(!isnan, fi2plot)), length = 20)
 
-	fig3 = Figure()
-	ax3 = GeoAxis(fig3[1,1], xticks=-55:20:30, yticks=10:10:80, title="Gridded count of ''$(myspecies)''\nmasked where relative error < $(maxerror)%", titlesize=20)
-	contourf!(ax3, xb, yb, maskbathy, levels=[-1.,0, 1.], colormap=:binary)
-	cc = contourf!(ax3, lonr, latr, fi2plot, levels=levels, colormap=Reverse("RdYlBu"))
-	xlims!(ax3, (thedomain[1], thedomain[2]))
-	ylims!(ax3, (thedomain[3], thedomain[4]))
-	Colorbar(fig3[1, 2], cc)
-	fig3
-else
-	@info("Not enough observations to perform interpolation")
+    fig3 = Figure()
+    ax3 = GeoAxis(
+        fig3[1, 1],
+        xticks = -55:20:30,
+        yticks = 10:10:80,
+        title = "Gridded count of ''$(myspecies)''\nmasked where error > $(maxerror)%",
+        titlesize = 20,
+    )
+    GeoMakie.contourf!(ax3, xb, yb, maskbathy, levels = [-1.0, 0, 1.0], colormap = :binary)
+    cc = GeoMakie.contourf!(
+        ax3,
+        lonr,
+        latr,
+        fi2plot,
+        levels = levels,
+        colormap = Reverse("RdYlBu"),
+    )
+    GeoMakie.xlims!(ax3, (domain[1], domain[2]))
+    GeoMakie.ylims!(ax3, (domain[3], domain[4]))
+    Colorbar(fig3[1, 2], cc)
+    fig3
 end
 
 # ╔═╡ d36d422e-999b-4a2d-a195-d1e20a69a032
@@ -394,49 +457,91 @@ This allows to compare the density maps in two (or more) time periods.
 
 # ╔═╡ 0ad22d9b-fd54-474f-9fa8-1d45a9a9d3c1
 begin
-	# Allocate matrices for results
-	fi_periods = Array{Float64}(undef, length(timeperiods), length(lonr), length(latr));
+    # Allocate matrices for results
+    fi_periods = Array{Float64}(undef, length(timeperiods), length(lonr), length(latr))
 
-	error_periods = Array{Float64}(undef, length(timeperiods), length(lonr), length(latr));
+    error_periods = Array{Float64}(undef, length(timeperiods), length(lonr), length(latr))
 
-	
 
-	for (iii, periods) in enumerate(timeperiods)
-		@info("Working on period $(periods[1]) - $(periods[2])")
-		goodtime = findall((total_count_coordinates.eventDate .>= periods[1]) .& (total_count_coordinates.eventDate .>= periods[2]));
-	
-		fi_periods[iii,:,:], s = DIVAndrun(maskbathy, (pm, pn), (xi, yi), (total_count_coordinates.decimalLongitude[goodtime], total_count_coordinates.decimalLatitude[goodtime]), Float64.(total_count_coordinates.total_count[goodtime]), len, epsilon2);
 
-		error_periods[iii,:,:] = DIVAnd_cpme(maskbathy, (pm, pn), (xi, yi), (total_count_coordinates.decimalLongitude[goodtime], total_count_coordinates.decimalLatitude[goodtime]) ,Float64.(total_count_coordinates.total_count)[goodtime], len, epsilon2);
-		
-	end
+    for (iii, periods) in enumerate(timeperiods)
+        @info("Working on period $(periods[1]) - $(periods[2])")
+        goodtime = findall(
+            (total_count_coordinates.eventDate .>= periods[1]) .&
+            (total_count_coordinates.eventDate .>= periods[2]),
+        )
+
+        @time fi_periods[iii, :, :], s = DIVAndrun(
+            maskbathy,
+            (pm, pn),
+            (xi, yi),
+            (
+                total_count_coordinates.decimalLongitude[goodtime],
+                total_count_coordinates.decimalLatitude[goodtime],
+            ),
+            Float64.(total_count_coordinates.total_count[goodtime]),
+            len,
+            epsilon2,
+        )
+
+        @time error_periods[iii, :, :] = DIVAnd_cpme(
+            maskbathy,
+            (pm, pn),
+            (xi, yi),
+            (
+                total_count_coordinates.decimalLongitude[goodtime],
+                total_count_coordinates.decimalLatitude[goodtime],
+            ),
+            Float64.(total_count_coordinates.total_count)[goodtime],
+            len,
+            epsilon2,
+        )
+
+    end
 end
 
 # ╔═╡ 0adb37ec-0b90-48cc-b79c-cf1034aa8c22
-if ("Plot results" in plotting_options) & (length(timeperiods) > 1) & (npoints > 5)
- 
-	fi2plotall = copy(fi_periods);
-	fi2plotall[error_periods .> maxerror /100] .= NaN
-	vmax = maximum(filter(!isnan, fi2plotall));
-	levels2 = range(0, vmax, length=20)
-	@info("Maximal value: $(vmax)")
+if ("Plot results" in plotting_options) & (length(timeperiods) > 1)
 
-	fig4 = Figure(size = (900, 400))
-	ntimes = length(timeperiods)
-	for ii = 1:ntimes
+    fi2plotall = copy(fi_periods)
+    fi2plotall[error_periods.>maxerror/100] .= NaN
+    vmax = maximum(filter(!isnan, fi2plotall))
+    levels2 = range(0, vmax, length = 20)
+    @info("Maximal value: $(vmax)")
 
-		ax4 = GeoAxis(fig4[1,ii], xticks=-55:20:30, yticks=10:10:80, title="$(timeperiods[ii][1]) - $(timeperiods[ii][2])", titlesize=20)
-		contourf!(ax4, xb, yb, maskbathy, levels=[-1.,0, 1.], colormap=:binary)
-		cc = contourf!(ax4, lonr, latr, fi2plotall[ii,:,:], levels=levels2, 
-		colormap=Reverse("RdYlBu"))
-		xlims!(ax4, (thedomain[1], thedomain[2]))
-		ylims!(ax4, (thedomain[3], thedomain[4]))
-		
-	end
-	Colorbar(fig4[1, ntimes+1], cc)
-	fig4
-else
-	@info("Not enough observations to perform interpolation")
+    fig4 = Figure(size = (800, 400), legend = "ok")
+    ntimes = length(timeperiods)
+    for ii = 1:ntimes
+
+        ax4 = GeoAxis(
+            fig4[1, ii],
+            xticks = -55:20:30,
+            yticks = 10:10:80,
+            title = "$(timeperiods[ii][1]) - $(timeperiods[ii][2])",
+            titlesize = 20,
+        )
+        GeoMakie.contourf!(
+            ax4,
+            xb,
+            yb,
+            maskbathy,
+            levels = [-1.0, 0, 1.0],
+            colormap = :binary,
+        )
+        cc = GeoMakie.contourf!(
+            ax4,
+            lonr,
+            latr,
+            fi2plotall[ii, :, :],
+            levels = levels2,
+            colormap = Reverse("RdYlBu"),
+        )
+        GeoMakie.xlims!(ax4, (domain[1], domain[2]))
+        GeoMakie.ylims!(ax4, (domain[3], domain[4]))
+
+    end
+    Colorbar(fig4[1, ntimes+1], cc)
+    fig4
 end
 
 # ╔═╡ 00000000-0000-0000-0000-000000000001
@@ -471,7 +576,7 @@ ZipFile = "~0.10.1"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.11.2"
+julia_version = "1.11.3"
 manifest_format = "2.0"
 project_hash = "687a9b3ad88970a2c914adf2426611cdf7fd1ad3"
 
@@ -2845,9 +2950,9 @@ version = "3.5.0+0"
 # ╟─6e9669f7-4e5c-4d08-9c1a-51e860839d86
 # ╟─6bab6cd2-36ea-4555-84ae-f751483d3bf2
 # ╠═4f3afffe-3231-11ef-0aea-8b6c089d68a1
-# ╟─4f2515f7-6015-497a-bbda-8649f2485590
+# ╠═4f2515f7-6015-497a-bbda-8649f2485590
 # ╠═3a20f6b1-2f91-46f8-a32a-920572487c08
-# ╟─88455c82-b59a-4664-ba20-3db321f276ac
+# ╠═88455c82-b59a-4664-ba20-3db321f276ac
 # ╟─179166ff-b949-415b-97d6-2c1d556f7421
 # ╟─3684d7e2-feb8-48b3-ab05-816d56ccb8eb
 # ╠═523aa60d-3d44-48a6-b192-0682eb3cd9f6
