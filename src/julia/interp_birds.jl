@@ -302,7 +302,7 @@ if "Plot observations" in plotting_options
         total_count_coordinates.decimalLongitude,
         total_count_coordinates.decimalLatitude;
         color = :gray,
-        markersize = 2,
+        markersize = 4,
     )
     GeoMakie.xlims!(ax, (domain[1], domain[2]))
     GeoMakie.ylims!(ax, (domain[3], domain[4]))
@@ -2941,10 +2941,10 @@ version = "3.5.0+0"
 # ╠═4f3afffe-3231-11ef-0aea-8b6c089d68a1
 # ╟─4f2515f7-6015-497a-bbda-8649f2485590
 # ╠═3a20f6b1-2f91-46f8-a32a-920572487c08
-# ╠═88455c82-b59a-4664-ba20-3db321f276ac
+# ╟─88455c82-b59a-4664-ba20-3db321f276ac
 # ╟─179166ff-b949-415b-97d6-2c1d556f7421
 # ╟─3684d7e2-feb8-48b3-ab05-816d56ccb8eb
-# ╠═523aa60d-3d44-48a6-b192-0682eb3cd9f6
+# ╟─523aa60d-3d44-48a6-b192-0682eb3cd9f6
 # ╟─e0349ab7-efd8-4469-a73e-a03662301f76
 # ╠═3424b197-599b-4e63-922f-bf5a8bc5c034
 # ╟─e1c13b19-09cf-4f1c-a38a-cb907e69f9fc
@@ -2963,7 +2963,7 @@ version = "3.5.0+0"
 # ╟─d9873211-17ea-4e06-b8fb-33f563d4bd17
 # ╟─05199f30-bbce-44e1-8c8c-4aa023ee4c02
 # ╟─57b4b501-fed0-4c63-8ffb-e32ceec7adf6
-# ╟─fe352f2f-9bef-4072-ad02-abac04247e34
+# ╠═fe352f2f-9bef-4072-ad02-abac04247e34
 # ╟─5e1ca2cd-7049-42ca-9379-24f5a11ec797
 # ╠═7790b356-05c8-4272-b2d7-30aee0b702b6
 # ╟─6834561d-8901-4dbd-8524-44a52a8aeb3a
