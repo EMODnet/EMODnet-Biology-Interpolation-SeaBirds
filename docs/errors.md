@@ -1,3 +1,6 @@
+# List of errors when installing Julia and R
+
+This document is not a pure documentation but still contains relevant information when one tries to perform the installation. The document lists errors and whenever possible, explains the solution that was found.
 
 ## CURL_4 not found
 
@@ -46,7 +49,7 @@ Stacktrace:
 
 ### Solution
 
-
+⚠️ No solution was found for this issue.
 
 ## internet routines cannot be loaded
 
@@ -103,7 +106,6 @@ In install.packages("terra") :
 sudo apt-get install libgdal-dev
 ```
 
-
 ## nghttp2_option_set_no_rfc9113_leading_and_trailing_ws_validation
 
 ### Error
@@ -115,7 +117,7 @@ sudo apt-get install libgdal-dev
 
 ### Solution
 
-???
+⚠️ No solution was found for this issue.
 
 ## version `CURL_OPENSSL_4' not found
 
@@ -133,7 +135,6 @@ Error in dyn.load(file, DLLpath = DLLpath, ...) :
 
 Same as before: don't execute `export LD_PRELOAD` before starting a session in `R`.
 
-
 ## Installing new Julia packages
 
 ### Error
@@ -145,7 +146,7 @@ Error in if (is.na(a)) return(-1L) : argument is of length zero
 
 ### Solution
 
-???
+⚠️ No solution was found for this issue.
 
 ## Installing `ncdf4` library
 
@@ -191,10 +192,12 @@ Error in dyn.load(file, DLLpath = DLLpath, ...) :
 
 ### Solution?
 
+⚠️ No solution was found for this issue.
+
 Still issue due to library path.
 
 
-## 
+## Conda library installation
 
 Error while loading conda entry point: conda-libmamba-solver (libarchive.so.19: cannot open shared object file: No such file or directory)
 

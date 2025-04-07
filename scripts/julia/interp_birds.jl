@@ -108,7 +108,7 @@ md"""
 
 Two files will be used for the processing:
 1. `event.txt`: it gives the data set ID, the position and the date
-2. `occurrence.txt`: it gives the count for different taxa, and relate them to the eventID read from the previous fole. 
+2. `occurrence.txt`: it gives the count for different taxa, and relate them to the eventID read from the previous file. 
 """
 
 # ╔═╡ 523aa60d-3d44-48a6-b192-0682eb3cd9f6
