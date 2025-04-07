@@ -1,0 +1,113 @@
+# Global attributes
+globalattrib = OrderedDict(
+    "title" => "Count maps of sea birds in the Europeans Seas",
+    "summary" => "The project aims to produce comprehensive data products of the sea birds." ,
+    "keywords" => "Marine/Coastal, Marine, Sea Birds" ,
+    "Conventions" => "CF-1.8" ,
+    "naming_authority" => "https://emodnet.ec.europa.eu/en/biology" ,
+    "history" => "https://github.com/EMODnet/EMODnet-Biology-SeaBirds-EuropeanSeas",
+    "source" => "https://github.com/EMODnet/EMODnet-Biology-SeaBirds-EuropeanSeas",
+    "license" => "CC-BY" ,
+    "standard_name_vocabulary" => "CF Standard Name Table 1.12" ,
+    "date_created" => Dates.format(Dates.today(), "yyyy-mm-dd") ,
+    "creator_name" => "Charles Troupin" ,
+    "creator_email" => "ctroupin@uliege.be" ,
+    "creator_url" => "https://www.gher.uliege.be" ,
+    "institution" => "University of Liège (ULiège)" ,
+    "project" => "EMODnet-Biology" ,
+    "publisher_name" => "EMODnet Biology Data Management Team" ,
+    "publisher_email" => "bio@emodnet.eu" ,
+    "publisher_url" => "https://emodnet.ec.europa.eu/en/biology" ,
+    "geospatial_lat_min" => domain[3],
+    "geospatial_lat_max" => domain[4],
+    "geospatial_lon_min" => domain[1],
+    "geospatial_lon_max" => domain[2],
+    "sea_name" => "Baltic Sea" ,
+    "creator_institution" => "University of Liège (ULiège)" ,
+    "publisher_institution" => "Flanders Marine Institute (VLIZ)" ,
+    "geospatial_lat_units" => "degrees_north" ,
+    "geospatial_lon_units" => "degrees_east" ,
+    "date_modified" => Dates.format(Dates.today(), "yyyy-mm-dd") ,
+    "date_issued" => Dates.format(Dates.today(), "yyyy-mm-dd") ,
+    "date_metadata_modified" => Dates.format(Dates.today(), "yyyy-mm-dd") ,
+    "product_version" => "1" ,
+    "metadata_link" => "https://marineinfo.org/imis?module=dataset&dasid=6618" ,
+    "comment" => "Uses attributes recommended by http://cfconventions.org",
+    "citation" => "Charles Troupin (2025). Abundance maps of Sea Birds in the European Sea. Integrated data products created under the European Marine Observation Data Network (EMODnet) Biology project CINEA/EMFAF/2022/3.5.2/SI2.895681, funded by the by the European Union under Regulation (EU) No 508/2014 of the European Parliament and of the Council of 15 May 2014 on the European Maritime and Fisheries Fund",
+    "acknowledgement" => "European Marine Observation Data Network (EMODnet) Biology project CINEA/EMFAF/2022/3.5.2/SI2.895681, funded by the European Union under Regulation (EU) No 508/2014 of the European Parliament and of the Council of 15 May 2014 on the European Maritime and Fisheries Fund" 
+)
+
+isfile(outputfile) ? rm(outputfile) : @debug("ok")
+ds = NCDataset(outputfile, "c", attrib = globalattrib)
+
+# Dimensions
+ds.dim["aphiaid"] = length(specieslist)
+ds.dim["lon"] = length(lonr)
+ds.dim["lat"] = length(latr)
+ds.dim["nv"] = 2
+ds.dim["time"] = Inf # unlimited dimension
+ds.dim["string80"] = 80
+
+# Declare variables
+
+nclon = defVar(ds, "lon", lonr, ("lon",), attrib = OrderedDict(
+    "units"                     => "degrees_east",
+    "long_name"                 => "Longitude",
+    "standard_name"             => "longitude",
+    "reference_datum"           => "geographical coordinates, WGS84 projection",
+    "axis"                      => "X",
+    "valid_min"                 => -180.0,
+    "valid_max"                 => 180.0 
+))
+
+nclat = defVar(ds, "lat", latr, ("lat",), attrib = OrderedDict(
+    "units"                     => "degrees_north",
+    "long_name"                 => "Latitude",
+    "standard_name"             => "latitude",
+    "reference_datum"           => "geographical coordinates, WGS84 projection",
+    "axis"                      => "Y",
+    "valid_min"                 => -90.0,
+    "valid_max"                 => 90.0
+))
+
+ncaphiaid = defVar(ds, "aphiaid", Int32,  ("aphiaid",), attrib = OrderedDict(
+    "long_name"                 => "Life Science Identifier - World Register of Marine Species",
+    "units"                     => "level"
+))
+
+nctaxonname = defVar(ds, "taxon_name", Char, ("aphiaid", "string80"), attrib = OrderedDict(
+    "long_name" => "Scientific name of the taxa",
+    "standard_name" => "biological_taxon_name"
+))
+    
+nctaxon_lsid = defVar(ds, "taxon_lsid", Char, ("aphiaid", "string80"), attrib = OrderedDict(
+    "standard_name" => "biological_taxon_lsid",
+    "long_name" => "Life Science Identifier - World Register of Marine Species"
+))
+
+nctime = defVar(ds, "time", Int64, ("time",), attrib = OrderedDict(
+    "units"                     => "days since 1970-01-01 00:00:00.0",
+    "calendar"                  => "gregorian",
+    "standard_name"             => "time",
+    "long_name"                 => "time",
+    "climatology"               => "climatology_bounds"
+))
+
+ncclimatology_bounds = defVar(ds,"climatology_bounds", Float64, ("nv", "time"), attrib = OrderedDict(
+    "units"                     => "days since 1970-01-01 00:00:00",
+))
+
+ncfield = defVar(ds,"gridded_count", Float64, ("lon", "lat", "time", "aphiaid"))
+ncerror = defVar(ds,"gridded_count_error", Float64, ("lon", "lat", "time", "aphiaid"))
+
+
+dateref = Dates.Date(1970, 1, 1)
+for (iii, dd) in enumerate(TS1.yearlists)
+    datestart = Dates.Date(dd[1], 1, 1)
+    dateend = Dates.Date(dd[end], 12, 31)
+    ncclimatology_bounds[1, iii] = Dates.value(datestart - dateref)
+    ncclimatology_bounds[2, iii] = Dates.value(dateend - dateref)
+    nctime[iii] = Dates.value(Dates.Date(dd[1] + 5, 1, 1) - dateref)
+end
+
+close(ds)
