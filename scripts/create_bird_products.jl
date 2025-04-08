@@ -36,8 +36,8 @@ You can set here:
 - the data directory path.
 """
 
-datadir = "../../data/"
-outputdir = "../../product/"
+datadir = "../data/"
+outputdir = "../product/"
 outputfile = joinpath(outputdir, "seabirds_interp.nc")
 mkpath(datadir)
 
@@ -95,10 +95,6 @@ for f in r.files
     end
 end
 close(r)
-
-
-## Load the mask for plotting
-lont, latt, lsmask = GeoDatasets.landseamask(; resolution = 'c', grid = 5)
 
 ## Read data as dataframes
 ### Occurences
@@ -173,10 +169,19 @@ for (jjj, thespecies) in enumerate(specieslist)
     @info("Working on $(thespecies)")
     occurences_species = occurences[occurences.scientificName.==thespecies, :]
 
+    if occursin("/", thespecies)
+        @warn("Symbol '/' in the scientific name")
+        thespecies = replace(thespecies, "/ " => "")
+    end
+
     ## Get the aphiaID from the species name
     resp = HTTP.request("GET", "$(baseURL)$(HTTP.escape(thespecies))?marine_only=false&extant_only=true");
-    aphiaID = String(resp.body)
-    @info(aphiaID);
+    if resp.status == 200
+        aphiaID = String(resp.body)
+        @info(aphiaID);
+    else
+        aphiaID = "000000"
+    end
 
     ### Create new dataframe with total number of obs. and the coordinates
     @time total_count = get_total_count(occurences_species)
