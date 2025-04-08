@@ -32,86 +32,58 @@ It was created in 2020 (and used at GHER since 2022).
 | -------- | ------- |
 | Many kernels (languages) available  | Julia only    |
 | JSON format | Julia script     |
-| State depending on the order of execution    | State updated everytime a
-cell is modified    |
+| State depending on the order of execution | State updated everytime a cell is modified |
 |       |  Interactive |
 
-# Pluto notebooks
+## Pluto notebooks
 
-:::::: frame
+
 ### Anatomy of a Pluto notebook
 
-::::: columns
-::: column
-0.65
-
-<figure>
-
-</figure>
-:::
-
-::: column
-0.35
+![Screenshot of a Pluto notebook with numbers for the anotation](images/pluto_anatomy.png)
 
 1.  Made up of cells: code, markdown, HTML, ...
-
 2.  Cell visibility can be turned off
-
-3.  Interactivity --  <https://featured.plutojl.org/basic/plutoui.jl>
-
-4.  Reproducibility\
-    [see next slide]{style="color: commentcolor"}
-:::
-:::::
-::::::
-
-:::::: frame
+3.  Interactivity (https://featured.plutojl.org/basic/plutoui.jl)
+4.  
 ### Reproducibility!
 
-::::: columns
-::: column
-0.6
+![Screenshot of a the Pluto notebook source code, showing the versions and the compatibilities between modules](images/pluto_end.png)
+All the
+- package versions (numbers etc)
+- compatibility constraints
+are stored in the Julia file     
+(not visible in the web interface).
 
-<figure>
+## Application: creating gridded maps for birds
 
-</figure>
-:::
+### Start a Pluto session
 
-::: column
-0.4 All the
+Start Julia and type
+```julia
+using Pluto
+Pluto.run()
+```
+![](images/pluto00.png)
 
--   package versions
+### Select the file to be opened
+![](images/pluto01.png)
 
--   compatibility constraints
+### Click on "Run notebook code"
+The first execution can take a while, since the packages have to be compiled.
+![](images/pluto02.png)
 
-are stored in the Julia file\
-[(not visible in the web interface)]{style="color: commentcolor"}
-:::
-:::::
-::::::
-
-# Application: creating gridded maps for birds
-
-::: frame
-### Application: Pluto notebook to process bird data
-
-<figure>
-<p><img src="pluto00.png" alt="image" /> <img src="pluto01.png"
-alt="image" /> <img src="pluto02.png" alt="image" /> <img
-src="pluto03.png" alt="image" /> <img src="pluto04.png" alt="image" />
-<img src="pluto05.png" alt="image" /> <img src="pluto06.png"
-alt="image" /> <img src="pluto07.png" alt="image" /> <img
-src="pluto08.png" alt="image" /></p>
-</figure>
-:::
-
-::: frame
-### Next developments
-
-1.  Test installation on different O.S.
-
-2.  A bit of cleaning
-:::
-
-::: frame
-:::
+### 
+![](images/pluto03.png)
+### 
+![](images/pluto04.png)
+### 
+![](images/pluto05.png)
+### 
+![](images/pluto06.png)
+### 
+![](images/pluto07.png)
+### 
+![](images/pluto08.png)
+### 
+![](images/pluto09.png)
