@@ -23,7 +23,6 @@ begin
     using NCDatasets
     using DataStructures
     using OrderedCollections
-    using HTTP
 end
 include("./seabirds.jl")
 
@@ -58,8 +57,6 @@ TS1 = DIVAnd.TimeSelectorYearListMonthList(yearlist, monthlists);
 # Data files to be downloaded 
 datafileevent = joinpath(datadir, "event.txt")
 datafileoccur = joinpath(datadir, "occurrence.txt")
-
-baseURL = "https://www.marinespecies.org/rest/AphiaIDByName/"
 
 """
 ## Data download
@@ -127,13 +124,7 @@ for (jjj, thespecies) in enumerate(specieslist)
     thespecies = replace(thespecies, "/ " => "", "." => "")
 
     ## Get the aphiaID from the species name
-    resp = HTTP.request("GET", "$(baseURL)$(HTTP.escape(thespecies))?marine_only=false&extant_only=true");
-    if resp.status == 200
-        aphiaID = String(resp.body)
-        @info(aphiaID);
-    else
-        aphiaID = "000000"
-    end
+
 
     ### Create new dataframe with total number of obs. and the coordinates
     total_count = get_total_count(occurences_species)

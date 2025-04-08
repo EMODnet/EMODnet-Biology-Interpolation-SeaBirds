@@ -3,6 +3,8 @@ using Downloads
 using Dates
 using DataFrames
 using NCDatasets
+using Downloads
+using HTTP
 
 function get_data_files(datadir::AbstractString)
     dataurl = "https://mda.vliz.be/download.php?file=VLIZ_00000772_6442460347bb7759971746"
@@ -11,7 +13,7 @@ function get_data_files(datadir::AbstractString)
         @info("Data already downloaded")
     else
         @info("Downloading data")
-        download(dataurl, datazip)
+        Downloads.download(dataurl, datazip)
     end
 
     @info("Extracting data archive")
@@ -29,6 +31,19 @@ function get_data_files(datadir::AbstractString)
     close(r)
     return nothing
 end
+
+function get_aphiaid(thespecies::AbstractString)
+    baseURL = "https://www.marinespecies.org/rest/AphiaIDByName/"
+    resp = HTTP.request("GET", "$(baseURL)$(HTTP.escape(thespecies))?marine_only=false&extant_only=true");
+    if resp.status == 200
+        aphiaID = String(resp.body)
+        @info(aphiaID);
+    else
+        aphiaID = "000000"
+    end
+    return aphiaID::AbstractString
+end
+
 
 function parse_date(xx::SubString{String},
     regexdate = r"\d{4}-\d{2}-\d{2}/\d{4}-\d{2}-\d{2}"::Regex,

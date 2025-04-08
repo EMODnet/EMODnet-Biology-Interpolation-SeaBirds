@@ -1,5 +1,5 @@
 ### A Pluto.jl notebook ###
-# v0.20.4
+# v0.20.5
 
 using Markdown
 using InteractiveUtils
@@ -7,7 +7,7 @@ using InteractiveUtils
 # This Pluto notebook uses @bind for interactivity. When running this notebook outside of Pluto, the following 'mock version' of @bind gives bound variables a default value (instead of an error).
 macro bind(def, element)
     #! format: off
-    quote
+    return quote
         local iv = try Base.loaded_modules[Base.PkgId(Base.UUID("6e696c72-6542-2067-7265-42206c756150"), "AbstractPlutoDingetjes")].Bonds.initial_value catch; b -> missing; end
         local el = $(esc(element))
         global $(esc(def)) = Core.applicable(Base.get, el) ? Base.get(el) : iv(el)
@@ -553,7 +553,6 @@ CSV = "~0.10.14"
 CairoMakie = "~0.12.14"
 DIVAnd = "~2.7.12"
 DataFrames = "~1.7.0"
-DelimitedFiles = "~1.9.1"
 GeoDatasets = "~0.1.8"
 GeoMakie = "~0.7.5"
 Makie = "~0.21.14"
@@ -565,9 +564,9 @@ ZipFile = "~0.10.1"
 PLUTO_MANIFEST_TOML_CONTENTS = """
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.11.3"
+julia_version = "1.11.4"
 manifest_format = "2.0"
-project_hash = "687a9b3ad88970a2c914adf2426611cdf7fd1ad3"
+project_hash = "6e9ad0a993ec62add79d5da6fa260e9a41d7c2ec"
 
 [[deps.ADTypes]]
 git-tree-sha1 = "eea5d80188827b35333801ef97a40c2ed653b081"
@@ -2024,7 +2023,7 @@ version = "3.2.4+0"
 [[deps.OpenLibm_jll]]
 deps = ["Artifacts", "Libdl"]
 uuid = "05823500-19ac-5b8b-9628-191a04bc5112"
-version = "0.8.1+2"
+version = "0.8.1+4"
 
 [[deps.OpenMPI_jll]]
 deps = ["Artifacts", "CompilerSupportLibraries_jll", "JLLWrappers", "LazyArtifacts", "Libdl", "MPIPreferences", "TOML"]
