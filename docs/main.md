@@ -1,100 +1,40 @@
+# EMODnet Biology: interpolation of bird observations with DIVAnd
 ---
-author:
-- C. Troupin
-date: 29 January 2025
-title: "EMODnet Biology: interpolation of bird observations with DIVAnd"
----
+##  Julia and Pluto
 
-::: frame
-:::
+### What is Julia?
 
-::: frame
-:::
+[Julia](https://julialang.org/) is a 
+- fast
+- dynamic
+- high-level and 
+- open source
+programming language.
 
-# Julia and Pluto
+It was created in 2012 (and used at GHER-ULiège since 2017).
 
-::::::: frame
-### Introduction
 
-What is Julia?
+### What is Pluto?
 
-:::::: columns
-:::: column
-0.3
+[Pluto](https://plutojl.org/) is a 
+- reactive
+- lightweight
+- simple and 
+- reproducible
+notebook environment.
 
-::: center
-![image](logo_julia.png){width="2cm"}
-:::
-::::
+It was created in 2020 (and used at GHER since 2022).
 
-::: column
-0.7 $ \textrm{A}
-  \left\{
-    \begin{array}{l}
-      \textbf{fast}\\
-      \textrm{dynamic}\\
-      \textrm{high-level}\\
-      \textrm{open source}
-    \end{array}
-  \right\}  \textrm{programming language}$
-:::
-::::::
 
-Created in 2012\
-Used at GHER-ULiège since $\sim$ 2017
+### Pluto vs. Jupyter
 
- <https://julialang.org/>
-:::::::
-
-::::::: frame
-### Introduction
-
-What is Pluto?
-
-:::::: columns
-:::: column
-0.3
-
-::: center
-![image](logo_pluto.png){width="3cm"}
-:::
-::::
-
-::: column
-0.7 $ \textrm{A}
-  \left\{
-    \begin{array}{l}
-      \textrm{reactive}\\   
-      \textrm{lightweight}\\
-      \textrm{simple}\\
-      \textbf{reproducible}
-    \end{array}
-  \right\}  \textrm{notebook environment}$
-:::
-::::::
-
-Created in $\sim$ 2020\
-Used at GHER since $\sim$ 2022
-
- <https://plutojl.org/>
-:::::::
-
-:::: frame
-### Introduction
-
-Pluto vs. Jupyter
-
-::: tabular
-L.45L.45 ![image](logo_jupyter.png){height="1.5cm"} &
-![image](logo_pluto.png){height="1.5cm"}\
-&\
-Many kernels (languages) available & Julia only\
-JSON format & Julia script\
-State depending on the order of execution & State updated everytime a
-cell is modified\
-& Interactive
-:::
-::::
+| Jupyter    | Pluto |
+| -------- | ------- |
+| Many kernels (languages) available  | Julia only    |
+| JSON format | Julia script     |
+| State depending on the order of execution    | State updated everytime a
+cell is modified    |
+|       |  Interactive |
 
 # Pluto notebooks
 
