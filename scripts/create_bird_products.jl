@@ -117,7 +117,7 @@ for (jjj, thespecies) in enumerate(specieslist)
     thespecies = replace(thespecies, "/ " => "", "." => "")
 
     ## Get the aphiaID from the species name
-
+    aphiaID = get_aphiaid(thespecies)
 
     ### Create new dataframe with total number of obs. and the coordinates
     total_count = get_total_count(occurences_species)
@@ -139,6 +139,7 @@ for (jjj, thespecies) in enumerate(specieslist)
 
     if npoints > 10
         global speciesindex += 1
+        @info(speciesindex);
         """
         #### Write into a CSV file
         The file can then be used in other languages (namely: `R`) or for other purposes.

@@ -176,8 +176,8 @@ function create_nc(outputfile::AbstractString)
         "units"                     => "days since 1970-01-01 00:00:00",
     ))
 
-    defVar(ds,"gridded_count_error", Float64, ("lon", "lat", "time", "aphiaid"))
     defVar(ds,"gridded_count", Float64, ("lon", "lat", "time", "aphiaid"))
+    defVar(ds,"gridded_count_error", Float64, ("lon", "lat", "time", "aphiaid"))
 
 
     dateref = Dates.Date(1970, 1, 1)
