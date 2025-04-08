@@ -85,11 +85,16 @@ By enabling the plots, they are displayed on screen and also saved in the `produ
 ### Select the species of interest in the drop-down list 
 ![](images/pluto05.png)
 
-### 
+A _data frame_ containing the osbervations for the species will be created.
 ![](images/pluto06.png)
-### 
+
+### Select the maximal allowed error
+
+Analysed and error field are automatically generated.         
+For the figure, only the field with an error lower than a given threshold is displayed.
 ![](images/pluto07.png)
-### 
+
+### Compare the time periods
+
+Separate analysis are performed for the time periods specified at the beginning of the notebook.
 ![](images/pluto08.png)
-### 
-![](images/pluto09.png)
