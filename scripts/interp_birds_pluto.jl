@@ -63,8 +63,10 @@ You can set here:
 # ╔═╡ 3a20f6b1-2f91-46f8-a32a-920572487c08
 begin
 
-    datadir = "../../data/"
+    datadir = "../data/raw_data/"
+	figdir = "../product/plots/"
     mkpath(datadir)
+	mkpath(figdir)
 
     domain = (-55, 21, 14.0, 72.0)
     deltalon = 0.5
@@ -277,9 +279,10 @@ if "Plot histogram" in plotting_options
 	yearmin = minimum(years)
 	yearmax = maximum(years)
 	fighist = Figure()
-	axhist = Axis(fighist[1,1], title="Number of events per year\n($(yearmin)-$(yearmax))", xlabel="Time")
+	axhist = Axis(fighist[1,1], title="Number of events per year for $(myspecies)\n($(yearmin)-$(yearmax))", xlabel="Time")
 	hist!(axhist, years; bins = yearmax - yearmin, color=:gray)
 	hidespines!(axhist, :t, :r) # only top and right
+	save(joinpath(figdir, "year_histogram_$(myspecies_).png"), fighist)
 	fighist
 end
 
@@ -307,6 +310,8 @@ if "Plot observations" in plotting_options
     GeoMakie.xlims!(ax, (domain[1], domain[2]))
     GeoMakie.ylims!(ax, (domain[3], domain[4]))
     GeoMakie.contour!(ax, lont, latt, lsmask, levels = [0.0], color = :black)
+	save(joinpath(figdir, "observation_map_$(myspecies_).png"), fig)
+
     fig
 end
 
@@ -357,6 +362,7 @@ if "Plot mask" in plotting_options
     GeoMakie.contourf!(ax2, xb, yb, maskbathy, levels = [-1.0, 0, 1.0], colormap = :binary)
     GeoMakie.xlims!(ax2, (domain[1], domain[2]))
     GeoMakie.ylims!(ax2, (domain[3], domain[4]))
+	save(joinpath(figdir, "landsea_mask.png"), fig2)
     fig2
 end
 
@@ -435,6 +441,7 @@ if ("Plot results" in plotting_options) & (npoints > 5)
     GeoMakie.xlims!(ax3, (domain[1], domain[2]))
     GeoMakie.ylims!(ax3, (domain[3], domain[4]))
     Colorbar(fig3[1, 2], cc)
+	save(joinpath(figdir, "gridded_field_$(myspecies_).png"), fig3)
     fig3
 end
 
@@ -530,6 +537,7 @@ if ("Plot results" in plotting_options) & (length(timeperiods) > 1)
 
     end
     Colorbar(fig4[1, ntimes+1], cc)
+	save(joinpath(figdir, "gridded_field_timeperiods_$(myspecies_).png"), fig4)
     fig4
 end
 
@@ -2962,7 +2970,7 @@ version = "3.5.0+0"
 # ╟─d9873211-17ea-4e06-b8fb-33f563d4bd17
 # ╟─05199f30-bbce-44e1-8c8c-4aa023ee4c02
 # ╟─57b4b501-fed0-4c63-8ffb-e32ceec7adf6
-# ╠═fe352f2f-9bef-4072-ad02-abac04247e34
+# ╟─fe352f2f-9bef-4072-ad02-abac04247e34
 # ╟─5e1ca2cd-7049-42ca-9379-24f5a11ec797
 # ╠═7790b356-05c8-4272-b2d7-30aee0b702b6
 # ╟─6834561d-8901-4dbd-8524-44a52a8aeb3a
@@ -2977,7 +2985,7 @@ version = "3.5.0+0"
 # ╟─fb517a88-0645-481c-b2bf-f4f8bf6b0530
 # ╟─dfc4ebc6-7305-4121-b6db-801d9978cee1
 # ╠═fe334b32-af15-4154-a7d3-a9443678f176
-# ╠═7b1221a8-f82c-48e4-9a5a-5bba12ca94f2
+# ╟─7b1221a8-f82c-48e4-9a5a-5bba12ca94f2
 # ╟─d36d422e-999b-4a2d-a195-d1e20a69a032
 # ╟─0ad22d9b-fd54-474f-9fa8-1d45a9a9d3c1
 # ╟─0adb37ec-0b90-48cc-b79c-cf1034aa8c22
