@@ -22,6 +22,7 @@ begin
 	using DIVAnd
     using NCDatasets
     using DataStructures
+    using Downloads
     using OrderedCollections
 end
 include("./seabirds.jl")
@@ -98,7 +99,7 @@ mask, (pm, pn), (xi, yi) = DIVAnd.DIVAnd_rectdom(lonr, latr)
 """
 bathname = joinpath(datadir, "gebco_30sec_4.nc")
 isfile(bathname) ? @info("Bathymetry file already downloaded") :
-download("https://dox.uliege.be/index.php/s/RSwm4HPHImdZoQP/download", bathname)
+Downloads.download("https://dox.uliege.be/index.php/s/RSwm4HPHImdZoQP/download", bathname)
 xb, yb, maskbathy = DIVAnd.load_mask(bathname, true, lonr, latr, 0.0)
 
 # Create the netCDF file that will store the results
@@ -181,8 +182,8 @@ for (jjj, thespecies) in enumerate(specieslist)
                     ds["aphiaid"][jjj] = parse(Int32, aphiaID)
                     ds["taxon_name"][speciesindex,1:length(thespecies)] = collect(thespecies)
                     ds["taxon_lsid"][speciesindex,1:length(thespecies)] = collect(thespecies)
-                    ds["gridded_count"][:,:,speciesindex,iii] = fi
-                    ds["gridded_count_error"][:,:,speciesindex,iii] = cpme
+                    ds["gridded_count"][:,:,iii,speciesindex] = fi
+                    ds["gridded_count_error"][:,:,iii,speciesindex] = cpme
                 end
             else
                 @info("Not enough observations to perform interpolation")

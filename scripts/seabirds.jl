@@ -120,11 +120,11 @@ function create_nc(outputfile::AbstractString)
     ds = NCDataset(outputfile, "c", attrib = globalattrib)
 
     # Dimensions
-    ds.dim["aphiaid"] = length(specieslist)
+    ds.dim["aphiaid"] = Inf
     ds.dim["lon"] = length(lonr)
     ds.dim["lat"] = length(latr)
     ds.dim["nv"] = 2
-    ds.dim["time"] = Inf # unlimited dimension
+    ds.dim["time"] = length(TS1) # unlimited dimension
     ds.dim["string80"] = 80
 
     # Declare variables
