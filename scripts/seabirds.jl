@@ -139,12 +139,12 @@ function create_nc(outputfile::AbstractString)
         "units"                     => "level"
     ))
 
-    nctaxonname = defVar(ds, "taxon_name", Char, ("aphiaid", "string80"), attrib = OrderedDict(
+    defVar(ds, "taxon_name", Char, ("aphiaid", "string80"), attrib = OrderedDict(
         "long_name" => "Scientific name of the taxa",
         "standard_name" => "biological_taxon_name"
     ))
         
-    nctaxon_lsid = defVar(ds, "taxon_lsid", Char, ("aphiaid", "string80"), attrib = OrderedDict(
+    defVar(ds, "taxon_lsid", Char, ("aphiaid", "string80"), attrib = OrderedDict(
         "standard_name" => "biological_taxon_lsid",
         "long_name" => "Life Science Identifier - World Register of Marine Species"
     ))
