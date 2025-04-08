@@ -36,10 +36,11 @@ You can set here:
 - the data directory path.
 """
 
-datadir = "../data/"
-outputdir = "../product/"
+datadir = "../data/raw_data/"
+outputdir = "../product/netcdf/"
 outputfile = joinpath(outputdir, "seabirds_interp.nc")
 mkpath(datadir)
+mkpath(outputdir)
 
 domain = (-55, 21, 14.0, 72.0)
 deltalon = 0.5

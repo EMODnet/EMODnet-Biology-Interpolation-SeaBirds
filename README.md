@@ -1,4 +1,4 @@
-# EMODnet-Biology-PhaseV
+# EMODnet-Biology-Interpolation-SeaBirds
 
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
 ![GitHub top language](https://img.shields.io/github/languages/top/gher-uliege/EMODnet-Biology-Interpolation-SeaBirds)
@@ -15,3 +15,23 @@
 This directory provides the codes and tools to
 1. prepare the gridded fields for a list of sea birds;
 2. provide a graphical interface (in [`Pluto`](https://plutojl.org/)) to generate gridded field of sea birds abundance. 
+
+## Directory structure
+
+```
+EMODnet-Biology-Interpolation-SeaBirds/
+├── data/
+│   ├── derived_data/
+│   └── raw_data/
+├── docs/
+├── product/
+│   ├── maps/
+│   ├── netcdf/
+│   └── plots/
+└── scripts/
+```
+
+* **data** - Raw and derived data
+* **docs** - Rendered reports
+* **product** - Output product files
+* **scripts** - Reusable code
