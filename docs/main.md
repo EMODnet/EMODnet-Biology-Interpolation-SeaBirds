@@ -45,7 +45,8 @@ It was created in 2020 (and used at GHER since 2022).
 1.  Made up of cells: code, markdown, HTML, ...
 2.  Cell visibility can be turned off
 3.  Interactivity (https://featured.plutojl.org/basic/plutoui.jl)
-4.  
+4.  Reproducibility
+
 ### Reproducibility!
 
 ![Screenshot of a the Pluto notebook source code, showing the versions and the compatibilities between modules](images/pluto_end.png)
@@ -70,15 +71,20 @@ Pluto.run()
 ![](images/pluto01.png)
 
 ### Click on "Run notebook code"
-The first execution can take a while, since the packages have to be compiled.
 ![](images/pluto02.png)
 
-### 
+The first execution can take a while, since the packages have to be compiled.
+
 ![](images/pluto03.png)
-### 
+
+### Select the types of plot you want to generate
+By default, no plots are created.    
+By enabling the plots, they are displayed on screen and also saved in the `product/plots` directory.
 ![](images/pluto04.png)
-### 
+
+### Select the species of interest in the drop-down list 
 ![](images/pluto05.png)
+
 ### 
 ![](images/pluto06.png)
 ### 
