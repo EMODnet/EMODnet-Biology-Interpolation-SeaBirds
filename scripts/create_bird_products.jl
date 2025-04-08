@@ -58,18 +58,11 @@ TS1 = DIVAnd.TimeSelectorYearListMonthList(yearlist, monthlists);
 datafileevent = joinpath(datadir, "event.txt")
 datafileoccur = joinpath(datadir, "occurrence.txt")
 
-"""
-## Data download
-!!! info "Download the data files"
-    They will be automatically downloaded from [https://www.vliz.be/en/imis?module=dataset&dasid=3117](https://www.vliz.be/en/imis?module=dataset&dasid=3117) and placed in the directory `../../data`.      
-⚠️ If they are stored in another directory, you need to set that value in the variable 📁 `datadir`.
+# Data download
+# Two files will be used for the processing:
+# 1. `event.txt`: it gives the data set ID, the position and the date
+# 2. `occurrence.txt`: it gives the count for different taxa, and relate them to the eventID read from the previous file. 
 
-> Vanermen N, Stienen EWM, Fijn R, Markones N, Holdsworth N, Osypchuk A, Pinto C, Desmet P (2022): European Seabirds at Sea (ESAS). ICES, Copenhagen, Denmark. https://esas.ices.dk. https://doi.org/10.14284/601
-
-Two files will be used for the processing:
-1. `event.txt`: it gives the data set ID, the position and the date
-2. `occurrence.txt`: it gives the count for different taxa, and relate them to the eventID read from the previous file. 
-"""
 get_data_files(datadir)
 
 ## Read data as dataframes
