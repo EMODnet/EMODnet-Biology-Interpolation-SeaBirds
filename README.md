@@ -1,6 +1,7 @@
 # EMODnet-Biology-PhaseV
 
 [![Project Status: Active – The project has reached a stable, usable state and is being actively developed.](https://www.repostatus.org/badges/latest/active.svg)](https://www.repostatus.org/#active)
+![GitHub top language](https://img.shields.io/github/languages/top/gher-uliege/EMODnet-Biology-Interpolation-SeaBirds)
 [![DOI](https://zenodo.org/badge/655615590.svg)](https://doi.org/10.5281/zenodo.15174401)
 
 [`DIVAnd`](https://github.com/gher-uliege/DIVAnd.jl) is a software tool designed to generate gridded maps of continuous variables such as sea water temperature, salinity or oxygen concentration. The acronyms stands for _Data Interpolating Variational Analysis in n dimensions_.
