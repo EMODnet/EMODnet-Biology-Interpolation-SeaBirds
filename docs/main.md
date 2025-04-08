@@ -77,9 +77,10 @@ The first execution can take a while, since the packages have to be compiled.
 
 ![](images/pluto03.png)
 
-### Select the types of plot you want to generate
-By default, no plots are created.    
-By enabling the plots, they are displayed on screen and also saved in the `product/plots` directory.
+### Set the user inputs
+1. Types of plots: by default, no plots are created; by enabling the plots, they are displayed on screen and also saved in the `product/plots` directory.
+2. Region of interest (where the interpolation is performed): defined in the variable `domain` (west, east, south, north).
+3. Periods of interest: the gridding can be performed on different time periods (more than 2) so that comparison can be carried out.
 ![](images/pluto04.png)
 
 ### Select the species of interest in the drop-down list 
