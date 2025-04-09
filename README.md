@@ -45,8 +45,13 @@ This data product use the following dataset:
 
 The raw files are obtained from VLIZ at https://www.vliz.be/en/imis?module=dataset&dasid=3117
 
+![Distribution of the Larus argentatus](./product/plots/observation_map_Larus_argentatus.png)
+
 The GEBCO topography is also required to create the land-sea mask used in `DIVAnd`:
 > GEBCO Bathymetric Compilation Group 2024 The GEBCO_2024 Grid - a continuous terrain model of the global oceans and land. NERC EDS British Oceanographic Data Centre NOC, 2024. https://doi.org/10.5285/1c44ce99-0a0d-5f4f-e063-7086abc0ea0f
+
+![Land-sea mask constructed using the GEBCO topography](./product/plots/landsea_mask.png)
+
 
 ## Data product
 
@@ -55,3 +60,5 @@ The data product consists of a netCDF file containing the gridded field obtained
 Along with the gridded field, an error field is also provided. It allows user to only consider the regions where the analysis can be trusted, i.e. where the error field is lower than a given threshold (0.25 for example).
 
 The `aphiaID` and the scientific name of the different species are also stored as variables in the netCDF.
+
+![Gridded field for Larus argentatus](./product/plots/gridded_field_Larus_argentatus.png)
