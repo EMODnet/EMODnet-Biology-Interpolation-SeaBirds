@@ -50,6 +50,9 @@ deltalat = 0.5
 len = 5.0
 epsilon2 = 10.0
 
+# Exclusion value
+valex = -999.
+
 yearlist = [y:y+9 for y = 1970:10:2011]
 monthlists = [1:12];
 TS1 = DIVAnd.TimeSelectorYearListMonthList(yearlist, monthlists);
@@ -175,15 +178,15 @@ for (jjj, thespecies) in enumerate(specieslist)
                 ### Compute error field
                 This error field will be used to mask regions without measurements (hence where the error is higher).
                 """
-                cpme = DIVAnd_cpme(maskbathy, (pm, pn), (xi, yi), (total_count_coordinates.decimalLongitude[dataselection], total_count_coordinates.decimalLatitude[dataselection]) ,Float64.(total_count_coordinates.total_count[dataselection]), len, epsilon2);
+                cpme = DIVAnd_cpme(maskbathy, (pm, pn), (xi, yi), (total_count_coordinates.decimalLongitude[dataselection], total_count_coordinates.decimalLatitude[dataselection]), Float64.(total_count_coordinates.total_count[dataselection]), len, epsilon2);
 
                 ### Write in the netCDF
                 NCDataset(outputfile, "a") do ds
                     ds["aphiaid"][jjj] = parse(Int32, aphiaID)
                     ds["taxon_name"][speciesindex,1:length(thespecies)] = collect(thespecies)
                     ds["taxon_lsid"][speciesindex,1:length(thespecies)] = collect(thespecies)
-                    ds["gridded_count"][:,:,iii,speciesindex] = fi
-                    ds["gridded_count_error"][:,:,iii,speciesindex] = cpme
+                    ds["gridded_count"][:,:,iii,speciesindex] = replace(fi, NaN=>valex)
+                    ds["gridded_count_error"][:,:,iii,speciesindex] = replace(cpme, NaN=>valex)
                 end
             else
                 @info("Not enough observations to perform interpolation")

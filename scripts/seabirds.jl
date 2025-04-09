@@ -176,8 +176,24 @@ function create_nc(outputfile::AbstractString)
         "units"                     => "days since 1970-01-01 00:00:00",
     ))
 
-    defVar(ds,"gridded_count", Float64, ("lon", "lat", "time", "aphiaid"))
-    defVar(ds,"gridded_count_error", Float64, ("lon", "lat", "time", "aphiaid"))
+    defVar(ds,"gridded_count", Float64, ("lon", "lat", "time", "aphiaid"), attrib = OrderedDict(
+        "units"                     => "1",
+        "long_name"                 => "Number of observations",
+        "valid_min"                 => Float64(0.0),
+        "valid_max"                 => Float64(100.),
+        "_FillValue"                => Float64(-999.),
+        "missing_value"             => Float64(-999.)
+    ))
+
+    defVar(ds,"gridded_count_error", Float64, ("lon", "lat", "time", "aphiaid"), attrib = OrderedDict(
+        "units"                     => "1",
+        "long_name"                 => "Relative error",
+        "valid_min"                 => Float64(0.0),
+        "valid_max"                 => Float64(1.0),
+        "_FillValue"                => Float64(-999.),
+        "missing_value"             => Float64(-999.),
+    ))
+
 
 
     dateref = Dates.Date(1970, 1, 1)
