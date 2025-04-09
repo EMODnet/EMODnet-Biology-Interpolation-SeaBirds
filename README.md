@@ -13,8 +13,8 @@
 `DIVAnd` is a multi-dimensional generalization ([Barth et al., 2014](https://dx.doi.org/10.5194/gmd-7-225-2014)), written in the [Julia language](https://julialang.org/), with a new mathematical formulation with respect to the previous [`DIVA`](https://github.com/gher-ulg/DIVA) code.
 
 This directory provides the codes and tools to
-1. prepare the gridded fields for a list of sea birds;
-2. provide a graphical interface (in [`Pluto`](https://plutojl.org/)) to generate gridded field of sea birds abundance. 
+1. prepare the gridded fields for a list of sea birds (file [`create_bird_products.jl`](scrips/create_bird_products.jl));
+2. provide a graphical interface (in [`Pluto`](https://plutojl.org/)) to generate gridded field of sea birds abundance (file [`interp_birds_pluto.jl`](scrips/interp_birds_pluto.jl)).
 
 ## Directory structure
 
