@@ -49,3 +49,9 @@ The GEBCO topography is also required to create the land-sea mask used in `DIVAn
 > GEBCO Bathymetric Compilation Group 2024 The GEBCO_2024 Grid - a continuous terrain model of the global oceans and land. NERC EDS British Oceanographic Data Centre NOC, 2024. https://doi.org/10.5285/1c44ce99-0a0d-5f4f-e063-7086abc0ea0f
 
 ## Data product
+
+The data product consists of a netCDF file containing the gridded field obtained by the interpolation of the observations of more than 400 sea bird species. The field is computed for 5 time periods: 1970-1979, 1980-1980, 1990-1999, 2000-2009 and 2010-2019.
+
+Along with the gridded field, an error field is also provided. It allows user to only consider the regions where the analysis can be trusted, i.e. where the error field is lower than a given threshold (0.25 for example).
+
+The `aphiaID` and the scientific name of the different species are also stored as variables in the netCDF.
