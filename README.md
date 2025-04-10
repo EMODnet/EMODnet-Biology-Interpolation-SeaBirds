@@ -14,7 +14,7 @@
 
 This directory provides the codes and tools to
 1. prepare the gridded fields for a list of sea birds (file [`create_bird_products.jl`](scrips/create_bird_products.jl));
-2. provide a graphical interface (in [`Pluto`](https://plutojl.org/)) to generate gridded field of sea birds abundance (file [`interp_birds_pluto.jl`](scrips/interp_birds_pluto.jl)).
+2. provide a graphical interface (in [`Pluto`](https://plutojl.org/)) to generate gridded field of sea birds abundance (file [`interp_birds_pluto.jl`](scrips/create_bird_products_pluto.jl)).
 
 ## Directory structure
 
@@ -51,7 +51,6 @@ The GEBCO topography is also required to create the land-sea mask used in `DIVAn
 > GEBCO Bathymetric Compilation Group 2024 The GEBCO_2024 Grid - a continuous terrain model of the global oceans and land. NERC EDS British Oceanographic Data Centre NOC, 2024. https://doi.org/10.5285/1c44ce99-0a0d-5f4f-e063-7086abc0ea0f
 
 ![Land-sea mask constructed using the GEBCO topography](./product/plots/landsea_mask.png)
-
 
 ## Data product
 
