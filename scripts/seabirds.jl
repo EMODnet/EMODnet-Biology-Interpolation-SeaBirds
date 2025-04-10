@@ -120,11 +120,11 @@ function create_nc(outputfile::AbstractString)
     ds = NCDataset(outputfile, "c", attrib = globalattrib)
 
     # Dimensions
-    ds.dim["aphiaid"] = Inf
+    ds.dim["aphiaid"] = Inf         # unlimited dimension, because we don't know how many species will be kept
     ds.dim["lon"] = length(lonr)
     ds.dim["lat"] = length(latr)
     ds.dim["nv"] = 2
-    ds.dim["time"] = length(TS1) # unlimited dimension
+    ds.dim["time"] = length(TS1) 
     ds.dim["string80"] = 80
 
     # Declare variables
@@ -165,7 +165,7 @@ function create_nc(outputfile::AbstractString)
     ))
 
     nctime = defVar(ds, "time", Int64, ("time",), attrib = OrderedDict(
-        "units"                     => "days since 1970-01-01 00:00:00.0",
+        "units"                     => "days since 1970-01-01 00:00:00",
         "calendar"                  => "gregorian",
         "standard_name"             => "time",
         "long_name"                 => "time",
@@ -174,8 +174,11 @@ function create_nc(outputfile::AbstractString)
 
     ncclimatology_bounds = defVar(ds,"climatology_bounds", Float64, ("nv", "time"), attrib = OrderedDict(
         "units"                     => "days since 1970-01-01 00:00:00",
+        "standard_name"             => "time",
+        "long_name"                 => "climatology bounds",
     ))
 
+    # defVar(ds,"gridded_count", Float64, ("lon", "lat", "time", "aphiaid"), attrib = OrderedDict(
     defVar(ds,"gridded_count", Float64, ("lon", "lat", "time", "aphiaid"), attrib = OrderedDict(
         "units"                     => "1",
         "long_name"                 => "Number of observations",
@@ -185,6 +188,7 @@ function create_nc(outputfile::AbstractString)
         "missing_value"             => Float64(-999.)
     ))
 
+    # defVar(ds,"gridded_count_error", Float64, ("lon", "lat", "time", "aphiaid"), attrib = OrderedDict(
     defVar(ds,"gridded_count_error", Float64, ("lon", "lat", "time", "aphiaid"), attrib = OrderedDict(
         "units"                     => "1",
         "long_name"                 => "Relative error",
@@ -193,8 +197,6 @@ function create_nc(outputfile::AbstractString)
         "_FillValue"                => Float64(-999.),
         "missing_value"             => Float64(-999.),
     ))
-
-
 
     dateref = Dates.Date(1970, 1, 1)
     for (iii, dd) in enumerate(TS1.yearlists)
