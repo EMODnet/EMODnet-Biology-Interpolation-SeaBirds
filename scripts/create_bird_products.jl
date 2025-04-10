@@ -24,6 +24,7 @@ begin
     using DataStructures
     using Downloads
     using OrderedCollections
+    using Test
 end
 include("./seabirds.jl")
 
@@ -38,7 +39,7 @@ You can set here:
 
 datadir = "../data/raw_data/"
 outputdir = "../product/netcdf/"
-outputfile = joinpath(outputdir, "seabirds_interp.nc")
+outputfile = joinpath(outputdir, "seabirds_interp_test02.nc")
 mkpath(datadir)
 mkpath(outputdir)
 
@@ -111,7 +112,7 @@ create_nc(outputfile)
 # Loop on all the species
 speciesindex = 0
 
-for (jjj, thespecies) in enumerate(specieslist)
+for (jjj, thespecies) in enumerate(specieslist[1:10])
     @info("Working on $(thespecies) ($(jjj)/$(nspecies))")
     occurences_species = occurences[occurences.scientificName.==thespecies, :]
 
@@ -122,6 +123,13 @@ for (jjj, thespecies) in enumerate(specieslist)
 
     ## Get the aphiaID from the species name
     aphiaID = get_aphiaid(thespecies)
+
+    # If we cannot get the aphiaID we don't perform the interpolation
+    # otherwise the netCDF will not be compliant with the CF checker
+    # (ERROR: (5): co-ordinate variable not monotonic)
+    if aphiaID == "000000"
+        continue
+    end
 
     ### Create new dataframe with total number of obs. and the coordinates
     total_count = get_total_count(occurences_species)
@@ -192,6 +200,21 @@ for (jjj, thespecies) in enumerate(specieslist)
                 @info("Not enough observations to perform interpolation")
             end;
 
+        end
+    end
+
+    # Sort along the aphiaID dimension
+    NCDataset(outputfile, "a") do ds
+        sortindex = sortperm(ds["aphiaid"][:])
+        aphiaIDtest02 = sort(ds["aphiaid"][:])
+        ds["aphiaid"][:] = ds["aphiaid"][sortindex]
+        aphiaIDtest01 = ds["aphiaid"][:] 
+        ds["gridded_count"][:,:,:,:] = ds["gridded_count"][:,:,:,sortindex]
+        ds["gridded_count_error"][:,:,:,:] = ds["gridded_count_error"][:,:,:,sortindex]
+        if aphiaIDtest01 == aphiaIDtest02
+            @info("ok that works")
+        else
+            @warn("some issue here")
         end
     end
 end
