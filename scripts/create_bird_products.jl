@@ -39,7 +39,7 @@ You can set here:
 
 datadir = "../data/raw_data/"
 outputdir = "../product/netcdf/"
-outputfile = joinpath(outputdir, "seabirds_interp_test02.nc")
+outputfile = joinpath(outputdir, "seabirds_interp.nc")
 mkpath(datadir)
 mkpath(outputdir)
 
@@ -112,7 +112,7 @@ create_nc(outputfile)
 # Loop on all the species
 speciesindex = 0
 
-for (jjj, thespecies) in enumerate(specieslist[1:10])
+for (jjj, thespecies) in enumerate(specieslist)
     @info("Working on $(thespecies) ($(jjj)/$(nspecies))")
     occurences_species = occurences[occurences.scientificName.==thespecies, :]
 
@@ -123,98 +123,103 @@ for (jjj, thespecies) in enumerate(specieslist[1:10])
 
     ## Get the aphiaID from the species name
     aphiaID = get_aphiaid(thespecies)
+    @info(aphiaID);
 
     # If we cannot get the aphiaID we don't perform the interpolation
     # otherwise the netCDF will not be compliant with the CF checker
     # (ERROR: (5): co-ordinate variable not monotonic)
-    if aphiaID == "000000"
-        continue
+    if aphiaID !== "000000"
+        
+        ### Create new dataframe with total number of obs. and the coordinates
+        total_count = get_total_count(occurences_species)
+        total_count_df = DataFrame(
+            eventID = collect(keys(total_count)),
+            total_count = collect(values(total_count)),
+        )
+
+        total_count_coordinates = innerjoin(total_count_df, events, on = :eventID)
+        select!(
+            total_count_coordinates,
+            :decimalLongitude,
+            :decimalLatitude,
+            :eventDate,
+            :total_count,
+        )
+        npoints = size(total_count_coordinates)[1]
+        @info("Number of data points: $(npoints)");
+
+        if npoints > 10
+            global speciesindex += 1
+            @info("Species index = $(speciesindex)");
+            """
+            #### Write into a CSV file
+            The file can then be used in other languages (namely: `R`) or for other purposes.
+            """
+            myspecies_ = replace(thespecies, " " => "_")
+            fname = joinpath(datadir, "$(myspecies_).csv")
+            CSV.write(fname, total_count_coordinates)
+
+            # Loop on time periods
+            for iii = 1:length(TS1)
+
+                ## Subset data
+                dataselection = DIVAnd.select(TS1, iii, total_count_coordinates.eventDate)
+
+                if npoints > 5
+                    """
+                    ## Perform DIVAnd heatmap computation
+                    # ## Perform computation
+                    """
+                    fi, s = DIVAndrun(
+                        maskbathy,
+                        (pm, pn),
+                        (xi, yi),
+                        (total_count_coordinates.decimalLongitude[dataselection], 
+                        total_count_coordinates.decimalLatitude[dataselection]),
+                        Float64.(total_count_coordinates.total_count[dataselection]),
+                        len,
+                        epsilon2,
+                    )
+
+                    """
+                    ### Compute error field
+                    This error field will be used to mask regions without measurements (hence where the error is higher).
+                    """
+                    cpme = DIVAnd_cpme(maskbathy, (pm, pn), (xi, yi), (total_count_coordinates.decimalLongitude[dataselection], total_count_coordinates.decimalLatitude[dataselection]), Float64.(total_count_coordinates.total_count[dataselection]), len, epsilon2);
+
+                    ### Write in the netCDF
+                    NCDataset(outputfile, "a") do ds
+                        ds["aphiaid"][speciesindex] = parse(Int32, aphiaID)
+                        ds["taxon_name"][speciesindex,1:length(thespecies)] = collect(thespecies)
+                        ds["taxon_lsid"][speciesindex,1:length(thespecies)] = collect(thespecies)
+                        ds["gridded_count"][:,:,iii,speciesindex] = replace(fi, NaN=>valex)
+                        ds["gridded_count_error"][:,:,iii,speciesindex] = replace(cpme, NaN=>valex)
+                    end
+                else
+                    @info("Not enough observations to perform interpolation")
+                end;
+
+            end
+        end
+
+    else
+        @warn("Cannot find aphiaID")
     end
 
-    ### Create new dataframe with total number of obs. and the coordinates
-    total_count = get_total_count(occurences_species)
-    total_count_df = DataFrame(
-        eventID = collect(keys(total_count)),
-        total_count = collect(values(total_count)),
-    )
+    
+end
 
-    total_count_coordinates = innerjoin(total_count_df, events, on = :eventID)
-    select!(
-        total_count_coordinates,
-        :decimalLongitude,
-        :decimalLatitude,
-        :eventDate,
-        :total_count,
-    )
-    npoints = size(total_count_coordinates)[1]
-    @info("Number of data points: $(npoints)");
-
-    if npoints > 10
-        global speciesindex += 1
-        @info(speciesindex);
-        """
-        #### Write into a CSV file
-        The file can then be used in other languages (namely: `R`) or for other purposes.
-        """
-        myspecies_ = replace(thespecies, " " => "_")
-        fname = joinpath(datadir, "$(myspecies_).csv")
-        CSV.write(fname, total_count_coordinates)
-
-        # Loop on time periods
-        for iii = 1:length(TS1)
-
-            ## Subset data
-            dataselection = DIVAnd.select(TS1, iii, total_count_coordinates.eventDate)
-
-            if npoints > 5
-                """
-                ## Perform DIVAnd heatmap computation
-                # ## Perform computation
-                """
-                fi, s = DIVAndrun(
-                    maskbathy,
-                    (pm, pn),
-                    (xi, yi),
-                    (total_count_coordinates.decimalLongitude[dataselection], 
-                    total_count_coordinates.decimalLatitude[dataselection]),
-                    Float64.(total_count_coordinates.total_count[dataselection]),
-                    len,
-                    epsilon2,
-                )
-
-                """
-                ### Compute error field
-                This error field will be used to mask regions without measurements (hence where the error is higher).
-                """
-                cpme = DIVAnd_cpme(maskbathy, (pm, pn), (xi, yi), (total_count_coordinates.decimalLongitude[dataselection], total_count_coordinates.decimalLatitude[dataselection]), Float64.(total_count_coordinates.total_count[dataselection]), len, epsilon2);
-
-                ### Write in the netCDF
-                NCDataset(outputfile, "a") do ds
-                    ds["aphiaid"][jjj] = parse(Int32, aphiaID)
-                    ds["taxon_name"][speciesindex,1:length(thespecies)] = collect(thespecies)
-                    ds["taxon_lsid"][speciesindex,1:length(thespecies)] = collect(thespecies)
-                    ds["gridded_count"][:,:,iii,speciesindex] = replace(fi, NaN=>valex)
-                    ds["gridded_count_error"][:,:,iii,speciesindex] = replace(cpme, NaN=>valex)
-                end
-            else
-                @info("Not enough observations to perform interpolation")
-            end;
-
-        end
-    end
-
-    # Sort along the aphiaID dimension
-    NCDataset(outputfile, "a") do ds
-        sortindex = sortperm(ds["aphiaid"][:])
-        aphiaIDtest02 = sort(ds["aphiaid"][:])
-        ds["aphiaid"][:] = ds["aphiaid"][sortindex]
-        aphiaIDtest01 = ds["aphiaid"][:] 
-        ds["gridded_count"][:,:,:,:] = ds["gridded_count"][:,:,:,sortindex]
-        ds["gridded_count_error"][:,:,:,:] = ds["gridded_count_error"][:,:,:,sortindex]
-        if aphiaIDtest01 == aphiaIDtest02
-            @info("ok that works")
-        else
-            @warn("some issue here")
-        end
+# Sort along the aphiaID dimension
+NCDataset(outputfile, "a") do ds
+    sortindex = sortperm(ds["aphiaid"][:])
+    aphiaIDtest02 = sort(ds["aphiaid"][:])
+    ds["aphiaid"][:] = ds["aphiaid"][sortindex]
+    aphiaIDtest01 = ds["aphiaid"][:] 
+    ds["gridded_count"][:,:,:,:] = ds["gridded_count"][:,:,:,sortindex]
+    ds["gridded_count_error"][:,:,:,:] = ds["gridded_count_error"][:,:,:,sortindex]
+    if aphiaIDtest01 == aphiaIDtest02
+        @info("ok that works")
+    else
+        @warn("some issue here")
     end
 end
