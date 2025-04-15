@@ -121,10 +121,10 @@ function create_nc(outputfile::AbstractString)
 
     # Dimensions
     ds.dim["aphiaid"] = Inf         # unlimited dimension, because we don't know how many species will be kept
-    ds.dim["lon"] = length(lonr)
-    ds.dim["lat"] = length(latr)
-    ds.dim["nv"] = 2
     ds.dim["time"] = length(TS1) 
+    ds.dim["lat"] = length(latr)
+    ds.dim["lon"] = length(lonr)
+    ds.dim["nv"] = 2
     ds.dim["string80"] = 80
 
     # Declare variables
@@ -178,8 +178,7 @@ function create_nc(outputfile::AbstractString)
         "long_name"                 => "climatology bounds",
     ))
 
-    # defVar(ds,"gridded_count", Float64, ("lon", "lat", "time", "aphiaid"), attrib = OrderedDict(
-    defVar(ds,"gridded_count", Float64, ("lon", "lat", "time", "aphiaid"), attrib = OrderedDict(
+    defVar(ds,"gridded_count", Float64, ("aphiaid", "time", "lat", "lon"), attrib = OrderedDict(
         "units"                     => "1",
         "long_name"                 => "Number of observations",
         "valid_min"                 => Float64(0.0),
@@ -188,8 +187,7 @@ function create_nc(outputfile::AbstractString)
         "missing_value"             => Float64(-999.)
     ))
 
-    # defVar(ds,"gridded_count_error", Float64, ("lon", "lat", "time", "aphiaid"), attrib = OrderedDict(
-    defVar(ds,"gridded_count_error", Float64, ("lon", "lat", "time", "aphiaid"), attrib = OrderedDict(
+    defVar(ds,"gridded_count_error", Float64, ("aphiaid", "time", "lat", "lon"), attrib = OrderedDict(
         "units"                     => "1",
         "long_name"                 => "Relative error",
         "valid_min"                 => Float64(0.0),

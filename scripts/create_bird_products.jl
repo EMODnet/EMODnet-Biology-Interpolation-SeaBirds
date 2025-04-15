@@ -192,8 +192,8 @@ for (jjj, thespecies) in enumerate(specieslist)
                         ds["aphiaid"][speciesindex] = parse(Int32, aphiaID)
                         ds["taxon_name"][speciesindex,1:length(thespecies)] = collect(thespecies)
                         ds["taxon_lsid"][speciesindex,1:length(thespecies)] = collect(thespecies)
-                        ds["gridded_count"][:,:,iii,speciesindex] = replace(fi, NaN=>valex)
-                        ds["gridded_count_error"][:,:,iii,speciesindex] = replace(cpme, NaN=>valex)
+                        ds["gridded_count"][speciesindex,iii,:,:] = replace(fi, NaN=>valex)
+                        ds["gridded_count_error"][speciesindex,iii,:,:] = replace(cpme, NaN=>valex)
                     end
                 else
                     @info("Not enough observations to perform interpolation")
@@ -215,8 +215,8 @@ NCDataset(outputfile, "a") do ds
     aphiaIDtest02 = sort(ds["aphiaid"][:])
     ds["aphiaid"][:] = ds["aphiaid"][sortindex]
     aphiaIDtest01 = ds["aphiaid"][:] 
-    ds["gridded_count"][:,:,:,:] = ds["gridded_count"][:,:,:,sortindex]
-    ds["gridded_count_error"][:,:,:,:] = ds["gridded_count_error"][:,:,:,sortindex]
+    ds["gridded_count"][:,:,:,:] = ds["gridded_count"][sortindex,:,:,:]
+    ds["gridded_count_error"][:,:,:,:] = ds["gridded_count_error"][sortindex,:,:,:]
     if aphiaIDtest01 == aphiaIDtest02
         @info("ok that works")
     else
