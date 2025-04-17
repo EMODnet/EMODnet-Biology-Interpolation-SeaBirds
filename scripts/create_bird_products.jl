@@ -112,7 +112,7 @@ create_nc(outputfile)
 # Loop on all the species
 speciesindex = 0
 
-for (jjj, thespecies) in enumerate(specieslist)
+for (jjj, thespecies) in enumerate(specieslist[20:5:100])
     @info("Working on $(thespecies) ($(jjj)/$(nspecies))")
     occurences_species = occurences[occurences.scientificName.==thespecies, :]
 
@@ -179,7 +179,10 @@ for (jjj, thespecies) in enumerate(specieslist)
                         Float64.(total_count_coordinates.total_count[dataselection]),
                         len,
                         epsilon2,
-                    )
+                    );
+
+                    # Replace negative values by zero
+                    fi[fi .< 0.] .= 0.;
 
                     """
                     ### Compute error field
@@ -192,8 +195,8 @@ for (jjj, thespecies) in enumerate(specieslist)
                         ds["aphiaid"][speciesindex] = parse(Int32, aphiaID)
                         ds["taxon_name"][speciesindex,1:length(thespecies)] = collect(thespecies)
                         ds["taxon_lsid"][speciesindex,1:length(thespecies)] = collect(thespecies)
-                        ds["gridded_count"][speciesindex,iii,:,:] = replace(fi, NaN=>valex)
-                        ds["gridded_count_error"][speciesindex,iii,:,:] = replace(cpme, NaN=>valex)
+                        ds["gridded_count"][:,:,iii,speciesindex] = replace(fi, NaN=>valex)
+                        ds["gridded_count_error"][:,:,iii,speciesindex] = replace(cpme, NaN=>valex);
                     end
                 else
                     @info("Not enough observations to perform interpolation")
@@ -210,16 +213,12 @@ for (jjj, thespecies) in enumerate(specieslist)
 end
 
 # Sort along the aphiaID dimension
+# We removed the taxa for which the aphiaID was not found through the API
 NCDataset(outputfile, "a") do ds
     sortindex = sortperm(ds["aphiaid"][:])
     aphiaIDtest02 = sort(ds["aphiaid"][:])
     ds["aphiaid"][:] = ds["aphiaid"][sortindex]
     aphiaIDtest01 = ds["aphiaid"][:] 
-    ds["gridded_count"][:,:,:,:] = ds["gridded_count"][sortindex,:,:,:]
-    ds["gridded_count_error"][:,:,:,:] = ds["gridded_count_error"][sortindex,:,:,:]
-    if aphiaIDtest01 == aphiaIDtest02
-        @info("ok that works")
-    else
-        @warn("some issue here")
-    end
-end
+    ds["gridded_count"][:,:,:,:] = ds["gridded_count"][:,:,:,sortindex]
+    ds["gridded_count_error"][:,:,:,:] = ds["gridded_count_error"][:,:,:,sortindex];
+end;

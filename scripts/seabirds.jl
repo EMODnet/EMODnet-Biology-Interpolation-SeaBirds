@@ -149,6 +149,14 @@ function create_nc(outputfile::AbstractString)
         "valid_max"                 => 90.0
     ))
 
+    nctime = defVar(ds, "time", Int64, ("time",), attrib = OrderedDict(
+        "units"                     => "days since 1970-01-01 00:00:00",
+        "calendar"                  => "gregorian",
+        "standard_name"             => "time",
+        "long_name"                 => "time",
+        "climatology"               => "climatology_bounds"
+    ))
+
     defVar(ds, "aphiaid", Int32,  ("aphiaid",), attrib = OrderedDict(
         "long_name"                 => "Life Science Identifier - World Register of Marine Species",
         "units"                     => "level"
@@ -164,13 +172,16 @@ function create_nc(outputfile::AbstractString)
         "long_name" => "Life Science Identifier - World Register of Marine Species"
     ))
 
-    nctime = defVar(ds, "time", Int64, ("time",), attrib = OrderedDict(
-        "units"                     => "days since 1970-01-01 00:00:00",
-        "calendar"                  => "gregorian",
-        "standard_name"             => "time",
-        "long_name"                 => "time",
-        "climatology"               => "climatology_bounds"
+    defVar(ds,"crs", Char, (), attrib = OrderedDict(
+        "grid_mapping_name"         => "latitude_longitude",
+        "long_name"                 => "CRS definition",
+        "longitude_of_prime_meridian" => 0.0,
+        "semi_major_axis"           => 6.378137e6,
+        "inverse_flattening"        => 298.257223563,
+        "spatial_ref"               => "GEOGCS[\"WGS 84\",DATUM[\"WGS_1984\",SPHEROID[\"WGS 84\",6378137,298.257223563]],PRIMEM[\"Greenwich\",0],UNIT[\"degree\",0.0174532925199433,AUTHORITY[\"EPSG\",\"9122\"]],AXIS[\"Latitude\",NORTH],AXIS[\"Longitude\",EAST],AUTHORITY[\"EPSG\",\"4326\"]]",
+        "GeoTransform"              => "-180 0.08333333333333333 0 90 0 -0.08333333333333333 ",
     ))
+
 
     ncclimatology_bounds = defVar(ds,"climatology_bounds", Float64, ("nv", "time"), attrib = OrderedDict(
         "units"                     => "days since 1970-01-01 00:00:00",
@@ -178,7 +189,7 @@ function create_nc(outputfile::AbstractString)
         "long_name"                 => "climatology bounds",
     ))
 
-    defVar(ds,"gridded_count", Float64, ("aphiaid", "time", "lat", "lon"), attrib = OrderedDict(
+    defVar(ds,"gridded_count", Float64, ("lon", "lat", "time", "aphiaid"), attrib = OrderedDict(
         "units"                     => "1",
         "long_name"                 => "Number of observations",
         "valid_min"                 => Float64(0.0),
@@ -187,7 +198,7 @@ function create_nc(outputfile::AbstractString)
         "missing_value"             => Float64(-999.)
     ))
 
-    defVar(ds,"gridded_count_error", Float64, ("aphiaid", "time", "lat", "lon"), attrib = OrderedDict(
+    defVar(ds,"gridded_count_error", Float64, ("lon", "lat", "time", "aphiaid"), attrib = OrderedDict(
         "units"                     => "1",
         "long_name"                 => "Relative error",
         "valid_min"                 => Float64(0.0),
