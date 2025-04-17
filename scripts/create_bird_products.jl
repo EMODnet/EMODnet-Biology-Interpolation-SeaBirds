@@ -107,12 +107,12 @@ Downloads.download("https://dox.uliege.be/index.php/s/RSwm4HPHImdZoQP/download",
 xb, yb, maskbathy = DIVAnd.load_mask(bathname, true, lonr, latr, 0.0)
 
 # Create the netCDF file that will store the results
-create_nc(outputfile)
+create_nc(outputfile);
 
 # Loop on all the species
 speciesindex = 0
 
-for (jjj, thespecies) in enumerate(specieslist[20:5:100])
+for (jjj, thespecies) in enumerate(specieslist)
     @info("Working on $(thespecies) ($(jjj)/$(nspecies))")
     occurences_species = occurences[occurences.scientificName.==thespecies, :]
 
@@ -219,6 +219,6 @@ NCDataset(outputfile, "a") do ds
     aphiaIDtest02 = sort(ds["aphiaid"][:])
     ds["aphiaid"][:] = ds["aphiaid"][sortindex]
     aphiaIDtest01 = ds["aphiaid"][:] 
-    ds["gridded_count"][:,:,:,:] = ds["gridded_count"][:,:,:,sortindex]
+    ds["gridded_count"][:,:,:,:] = ds["gridded_count"][:,:,:,sortindex];
     ds["gridded_count_error"][:,:,:,:] = ds["gridded_count_error"][:,:,:,sortindex];
 end;
