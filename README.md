@@ -54,7 +54,7 @@ The GEBCO topography is also required to create the land-sea mask used in `DIVAn
 
 ## Data product
 
-The data product consists of a netCDF file containing the gridded field obtained by the interpolation of the observations of more than 400 sea bird species. The field is computed for 5 time periods: 1970-1979, 1980-1980, 1990-1999, 2000-2009 and 2010-2019.
+The data product consists of a netCDF file containing the gridded field obtained by the interpolation of the observations of more than 400 sea bird species. The field is computed for 5 time periods: 1970-1979, 1980-1989, 1990-1999, 2000-2009 and 2010-2019.
 
 Along with the gridded field, an error field is also provided. It allows user to only consider the regions where the analysis can be trusted, i.e. where the error field is lower than a given threshold (0.25 for example).
 
