@@ -117,11 +117,22 @@ function create_nc(outputfile::AbstractString)
     )
 
     isfile(outputfile) ? rm(outputfile) : @debug("ok")
-    ds = NCDataset(outputfile, "c", attrib = globalattrib)
+    dateref = Dates.Date(1970, 1, 1)
 
+    function get_dates(TS1, dateref = Dates.Date(1970, 1, 1))
+        thedates = ones(Int64, length(TS1.yearlists))
+        for (iii, dd) in enumerate(TS1.yearlists)
+            thedates[iii] = Dates.value(Dates.Date(dd[1] + 5, 1, 1) - dateref)
+        end
+        return thedates
+    end
+
+    thedates = get_dates(TS1)
+    ds = NCDataset(outputfile, "c", attrib = globalattrib)
+    
     # Dimensions
-    ds.dim["aphiaid"] = Inf         # unlimited dimension, because we don't know how many species will be kept
     ds.dim["time"] = length(TS1) 
+    ds.dim["aphiaid"] = Inf         # unlimited dimension, because we don't know how many species will be kept
     ds.dim["lat"] = length(latr)
     ds.dim["lon"] = length(lonr)
     ds.dim["nv"] = 2
@@ -129,14 +140,17 @@ function create_nc(outputfile::AbstractString)
 
     # Declare variables
 
-    defVar(ds, "lon", lonr, ("lon",), attrib = OrderedDict(
-        "units"                     => "degrees_east",
-        "long_name"                 => "Longitude",
-        "standard_name"             => "longitude",
-        "reference_datum"           => "geographical coordinates, WGS84 projection",
-        "axis"                      => "X",
-        "valid_min"                 => -180.0,
-        "valid_max"                 => 180.0 
+    defVar(ds, "time", thedates, ("time",), attrib = OrderedDict(
+        "units"                     => "days since 1970-01-01 00:00:00",
+        "calendar"                  => "gregorian",
+        "standard_name"             => "time",
+        "long_name"                 => "time",
+        "climatology"               => "climatology_bounds"
+    ))
+
+    defVar(ds, "aphiaid", Int32,  ("aphiaid",), attrib = OrderedDict(
+        "long_name"                 => "Life Science Identifier - World Register of Marine Species",
+        "units"                     => "level"
     ))
 
     defVar(ds, "lat", latr, ("lat",), attrib = OrderedDict(
@@ -149,17 +163,14 @@ function create_nc(outputfile::AbstractString)
         "valid_max"                 => 90.0
     ))
 
-    nctime = defVar(ds, "time", Int64, ("time",), attrib = OrderedDict(
-        "units"                     => "days since 1970-01-01 00:00:00",
-        "calendar"                  => "gregorian",
-        "standard_name"             => "time",
-        "long_name"                 => "time",
-        "climatology"               => "climatology_bounds"
-    ))
-
-    defVar(ds, "aphiaid", Int32,  ("aphiaid",), attrib = OrderedDict(
-        "long_name"                 => "Life Science Identifier - World Register of Marine Species",
-        "units"                     => "level"
+    defVar(ds, "lon", lonr, ("lon",), attrib = OrderedDict(
+        "units"                     => "degrees_east",
+        "long_name"                 => "Longitude",
+        "standard_name"             => "longitude",
+        "reference_datum"           => "geographical coordinates, WGS84 projection",
+        "axis"                      => "X",
+        "valid_min"                 => -180.0,
+        "valid_max"                 => 180.0 
     ))
 
     defVar(ds, "taxon_name", Char, ("aphiaid", "string80"), attrib = OrderedDict(
@@ -182,14 +193,9 @@ function create_nc(outputfile::AbstractString)
         "GeoTransform"              => "-180 0.08333333333333333 0 90 0 -0.08333333333333333 ",
     ))
 
+    # defVar(ds,"gridded_count", Float64, ("lon", "lat", "time", "aphiaid"), attrib = OrderedDict(
+    defVar(ds,"gridded_count", Float64, ("lon", "lat", "aphiaid", "time"), attrib = OrderedDict(
 
-    ncclimatology_bounds = defVar(ds,"climatology_bounds", Float64, ("nv", "time"), attrib = OrderedDict(
-        "units"                     => "days since 1970-01-01 00:00:00",
-        "standard_name"             => "time",
-        "long_name"                 => "climatology bounds",
-    ))
-
-    defVar(ds,"gridded_count", Float64, ("lon", "lat", "time", "aphiaid"), attrib = OrderedDict(
         "units"                     => "1",
         "long_name"                 => "Number of observations",
         "valid_min"                 => Float64(0.0),
@@ -198,7 +204,8 @@ function create_nc(outputfile::AbstractString)
         "missing_value"             => Float64(-999.)
     ))
 
-    defVar(ds,"gridded_count_error", Float64, ("lon", "lat", "time", "aphiaid"), attrib = OrderedDict(
+    # defVar(ds,"gridded_count_error", Float64, ("lon", "lat", "time", "aphiaid"), attrib = OrderedDict(
+    defVar(ds,"gridded_count_error", Float64, ("lon", "lat", "aphiaid", "time"), attrib = OrderedDict(
         "units"                     => "1",
         "long_name"                 => "Relative error",
         "valid_min"                 => Float64(0.0),
@@ -207,13 +214,17 @@ function create_nc(outputfile::AbstractString)
         "missing_value"             => Float64(-999.),
     ))
 
-    dateref = Dates.Date(1970, 1, 1)
+    # ncclimatology_bounds = defVar(ds,"climatology_bounds", Float64, ("nv", "time"), attrib = OrderedDict(
+    #     "units"                     => "days since 1970-01-01 00:00:00",
+    #     "standard_name"             => "time",
+    #     "long_name"                 => "climatology bounds",
+    # ))
+
     for (iii, dd) in enumerate(TS1.yearlists)
         datestart = Dates.Date(dd[1], 1, 1)
         dateend = Dates.Date(dd[end], 12, 31)
-        ncclimatology_bounds[1, iii] = Dates.value(datestart - dateref)
-        ncclimatology_bounds[2, iii] = Dates.value(dateend - dateref)
-        nctime[iii] = Dates.value(Dates.Date(dd[1] + 5, 1, 1) - dateref)
+        #ncclimatology_bounds[1, iii] = Dates.value(datestart - dateref)
+        #ncclimatology_bounds[2, iii] = Dates.value(dateend - dateref)
     end
 
     close(ds)

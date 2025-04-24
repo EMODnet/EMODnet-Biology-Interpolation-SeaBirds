@@ -39,7 +39,7 @@ You can set here:
 
 datadir = "../data/raw_data/"
 outputdir = "../product/netcdf/"
-outputfile = joinpath(outputdir, "seabirds_interp.nc")
+outputfile = joinpath(outputdir, "seabirds_interp_time-aphiaid-lat-lon.nc")
 mkpath(datadir)
 mkpath(outputdir)
 
@@ -183,6 +183,7 @@ for (jjj, thespecies) in enumerate(specieslist)
 
                     # Replace negative values by zero
                     fi[fi .< 0.] .= 0.;
+                    replace!(fi, NaN=>valex);
 
                     """
                     ### Compute error field
@@ -190,13 +191,17 @@ for (jjj, thespecies) in enumerate(specieslist)
                     """
                     cpme = DIVAnd_cpme(maskbathy, (pm, pn), (xi, yi), (total_count_coordinates.decimalLongitude[dataselection], total_count_coordinates.decimalLatitude[dataselection]), Float64.(total_count_coordinates.total_count[dataselection]), len, epsilon2);
 
+                    replace!(cpme, NaN=>valex);
+
                     ### Write in the netCDF
                     NCDataset(outputfile, "a") do ds
                         ds["aphiaid"][speciesindex] = parse(Int32, aphiaID)
                         ds["taxon_name"][speciesindex,1:length(thespecies)] = collect(thespecies)
                         ds["taxon_lsid"][speciesindex,1:length(thespecies)] = collect(thespecies)
-                        ds["gridded_count"][:,:,iii,speciesindex] = replace(fi, NaN=>valex)
-                        ds["gridded_count_error"][:,:,iii,speciesindex] = replace(cpme, NaN=>valex);
+                        # ds["gridded_count"][:,:,iii,speciesindex] = replace(fi, NaN=>valex)
+                        # ds["gridded_count_error"][:,:,iii,speciesindex] = replace(cpme, NaN=>valex);
+                        ds["gridded_count"][:,:,speciesindex,iii] = fi;
+                        ds["gridded_count_error"][:,:,speciesindex,iii] = cpme;
                     end
                 else
                     @info("Not enough observations to perform interpolation")
@@ -219,6 +224,8 @@ NCDataset(outputfile, "a") do ds
     aphiaIDtest02 = sort(ds["aphiaid"][:])
     ds["aphiaid"][:] = ds["aphiaid"][sortindex]
     aphiaIDtest01 = ds["aphiaid"][:] 
-    ds["gridded_count"][:,:,:,:] = ds["gridded_count"][:,:,:,sortindex];
-    ds["gridded_count_error"][:,:,:,:] = ds["gridded_count_error"][:,:,:,sortindex];
+    # ds["gridded_count"][:,:,:,:] = ds["gridded_count"][:,:,:,sortindex];
+    # ds["gridded_count_error"][:,:,:,:] = ds["gridded_count_error"][:,:,:,sortindex];
+    ds["gridded_count"][:,:,:,:] = ds["gridded_count"][:,:,sortindex,:];
+    ds["gridded_count_error"][:,:,:,:] = ds["gridded_count_error"][:,:,sortindex,:];
 end;
